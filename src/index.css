@@ -1,5 +1,4 @@
-/* Подключаем красивый шрифт с засечками (аналог Kyiv*Type) */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@400;700&family=Manrope:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@400;500;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,29 +13,26 @@ html, body, #root {
   background-color: #E5E5E5;
 }
 
-/* Классы для шрифтов */
-.font-kyiv {
-  font-family: 'Playfair Display SC', serif; /* Или 'KyivType Titling', если подключите локально */
-}
-.font-manrope {
-  font-family: 'Manrope', sans-serif;
-}
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* === ВАШИ НОВЫЕ СТИЛИ === */
 
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden; /* Запрещаем скролл самой страницы */
-  background-color: #e5e5e5;
+/* 1. Шрифт и Текстовые эффекты */
+.font-zen {
+  font-family: 'Zen Kaku Gothic Antique', sans-serif;
+  color: #FFFFFF;
+  /* Обводка (Stroke) */
+  -webkit-text-stroke: 0.5px #FFFFFF;
+  /* Тень (Shadow) 25% opacity */
+  text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
 }
 
-#root {
-  width: 100%;
-  height: 100%;
-  display: block; /* Важно! */
-  position: relative;
+/* 2. Фон Градиент (85% opacity) */
+.custom-gradient {
+  background: linear-gradient(180deg, rgba(189, 195, 206, 0.85) 0%, rgba(164, 176, 201, 0.85) 100%);
+}
+
+/* 3. Подложка (Белый 11%) */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.11);
+  backdrop-filter: blur(5px); /* Легкий блюр внутри плашек для читаемости */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Тонкая обводка для стекла */
 }

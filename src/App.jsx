@@ -3,42 +3,39 @@ import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
 import { Interface } from './components/Interface'
 import { Home } from './components/Home'
+import { useConfigurator } from './store'
 
 function App() {
     const [screen, setScreen] = useState('home');
 
     return (
         <>
-            {/* 1. ГЛАВНАЯ */}
             {screen === 'home' && (
                 <Home onStart={() => setScreen('configurator')} />
             )}
 
-            {/* 2. КОНСТРУКТОР */}
             {screen === 'configurator' && (
-                <div className="relative w-full h-screen bg-[#E5E5E5] overflow-hidden font-sans">
+                // Используем fixed для мобилки, чтобы избежать скачков при скролле браузера
+                <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] overflow-hidden font-sans flex flex-col md:block">
 
-                    {/* Кнопка НАЗАД */}
                     <button
                         onClick={() => setScreen('home')}
-                        className="absolute top-6 left-6 z-50 px-6 py-2 bg-white rounded-full shadow-lg text-sm font-bold text-gray-800 hover:scale-105 transition-transform"
+                        className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/90 backdrop-blur rounded-full shadow-lg text-xs md:text-sm font-bold text-[#1a1a1a] font-zen active:scale-95 transition-transform border border-black/5"
                     >
                         ← Назад
                     </button>
 
                     {/* 3D СЦЕНА */}
-                    {/* Сдвигаем сцену немного влево (w-3/4), чтобы освободить место для широкого синего меню справа */}
-                    <div className="absolute inset-0 z-0 w-full md:w-[75%]">
+                    {/* Mobile: 45% высоты. Desktop: 75% ширины */}
+                    <div className="relative w-full h-[45%] md:absolute md:inset-0 md:w-[75%] md:h-full bg-[#dcdcdc] md:bg-transparent">
                         <Canvas camera={{ position: [0, 0, 4.5], fov: 45 }}>
-                            {/* Светло-серый фон сцены */}
-                            <color attach="background" args={['#dcdcdc']} />
                             <Experience />
                         </Canvas>
                     </div>
 
-                    {/* ИНТЕРФЕЙС (Плавает справа) */}
-                    <div className="absolute top-0 right-0 h-full w-full md:w-[30%] pointer-events-none p-4 flex flex-col justify-center">
-                        {/* Передаем управление кликами внутрь */}
+                    {/* ИНТЕРФЕЙС */}
+                    {/* Mobile: Занимает оставшиеся 55% высоты. Desktop: Справа */}
+                    <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
                         <Interface />
                     </div>
 
