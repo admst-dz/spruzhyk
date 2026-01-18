@@ -9,14 +9,16 @@ const palette = [
     { name: 'Blue', bg: '#1565C0' },
     { name: 'White', bg: '#ffffff' },
     { name: 'Pink', bg: '#EC407A' },
+    { name: 'Silver', bg: '#Silver' }, // Добавили серебро для пружины
 ];
 
-export const Interface = () => {
+export const Interface = ({ onFinish }) => {
     const [tab, setTab] = useState('cover');
 
     const {
         format, setFormat,
-        setColor, coverColor, elasticColor,
+        bindingType, setBindingType,
+        setColor, coverColor, elasticColor, spiralColor, // Достали spiralColor
         hasElastic, setHasElastic,
         setNotebookOpen,
         paperPattern, setPaperPattern,
@@ -25,7 +27,7 @@ export const Interface = () => {
         zoomLevel, setZoom
     } = useConfigurator();
 
-    // ЗАГЛУШКА КАЛЕНДАРЯ
+    // Заглушка календаря
     if (activeProduct === 'calendar') {
         return (
             <div className="pointer-events-auto w-full h-full md:h-[95%] custom-gradient backdrop-blur-xl rounded-t-[30px] md:rounded-[9px] flex items-center justify-center border-t md:border border-white/30 relative">
@@ -38,15 +40,12 @@ export const Interface = () => {
     }
 
     return (
-        // КОНТЕЙНЕР ИНТЕРФЕЙСА
         <div className="pointer-events-auto w-full h-full md:h-[95%] custom-gradient backdrop-blur-xl rounded-t-[30px] md:rounded-[9px] shadow-2xl flex flex-col overflow-hidden font-zen border-t md:border border-white/20 relative">
 
-            {/* КНОПКИ ЗУМА (Fixed на мобилке, Absolute на десктопе) */}
             <div className="fixed top-20 right-4 z-50 md:absolute md:top-[-60px] md:right-0">
                 <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
             </div>
 
-            {/* ВЕРХНИЕ ТАБЫ */}
             <div className="flex items-end gap-8 px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
                 <button
                     onClick={() => { setTab('cover'); setNotebookOpen(false); }}
@@ -66,12 +65,31 @@ export const Interface = () => {
                 </button>
             </div>
 
-            {/* ВНУТРЕННИЙ КОНТЕЙНЕР */}
             <div className="flex-1 px-4 md:px-6 pt-4 overflow-y-auto custom-scrollbar flex flex-col gap-3 relative z-0">
 
                 {tab === 'cover' && (
                     <div className="animate-fade-in flex flex-col gap-3 pb-40">
 
+                        {/* 1. ПЕРЕПЛЕТ */}
+                        <GlassDropdown label="Переплет" currentValue={bindingType === 'hard' ? 'Твердый' : 'Пружина'}>
+                            <div className="flex flex-col gap-1">
+                                <button onClick={() => setBindingType('hard')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'hard' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}>
+                                    <span>Твердый переплет</span> {bindingType === 'hard' && <span>✓</span>}
+                                </button>
+                                <button onClick={() => setBindingType('spiral')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'spiral' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}>
+                                    <span>На пружине (Soft)</span> {bindingType === 'spiral' && <span>✓</span>}
+                                </button>
+                            </div>
+                        </GlassDropdown>
+
+                        {/* ЦВЕТ ПРУЖИНЫ (Только если выбрана спираль) */}
+                        {bindingType === 'spiral' && (
+                            <div className="glass-panel rounded-[11px] overflow-hidden animate-fade-in">
+                                <ColorGlassList currentColor={spiralColor} onSelect={(c) => setColor('spiral', c)} label="Цвет пружины"/>
+                            </div>
+                        )}
+
+                        {/* 2. Формат */}
                         <GlassDropdown label="Формат" currentValue={format}>
                             <div className="flex flex-col gap-1">
                                 {['A5', 'A6'].map(f => (
@@ -82,6 +100,7 @@ export const Interface = () => {
                             </div>
                         </GlassDropdown>
 
+                        {/* 3. Резинка */}
                         <div className="glass-panel rounded-[11px] overflow-hidden transition-all">
                             <div className="p-5 flex items-center justify-between cursor-pointer" onClick={() => setHasElastic(!hasElastic)}>
                                 <span className="text-xl font-bold tracking-wide">Резинка</span>
@@ -92,8 +111,10 @@ export const Interface = () => {
                             {hasElastic && (<div className="border-t border-white/10"><ColorGlassList currentColor={elasticColor} onSelect={(c) => setColor('elastic', c)} label="Цвет резинки" /></div>)}
                         </div>
 
+                        {/* 4. Цвет обложки */}
                         <div className="glass-panel rounded-[11px] overflow-hidden"><ColorGlassList currentColor={coverColor} onSelect={(c) => setColor('cover', c)} label="Цвет обложки"/></div>
 
+                        {/* 5. Тиснение */}
                         <div className="glass-panel rounded-[11px] p-5">
                             <h3 className="text-xl font-bold tracking-wide mb-4">Тиснение</h3>
                             <label className="block w-full py-3 bg-white/10 rounded-[6px] text-center cursor-pointer border border-white/20 text-sm font-bold mb-5">ЗАГРУЗИТЬ ЛОГОТИП<input type="file" onChange={(e) => setLogo(e.target.files[0])} className="hidden"/></label>
@@ -120,46 +141,27 @@ export const Interface = () => {
                 )}
             </div>
 
-            {/* КНОПКА ЗАКАЗА */}
             <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#A4B0C9]/95 backdrop-blur-xl">
-                <button className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-xl font-black tracking-[0.2em] uppercase hover:bg-gray-100 transition-all shadow-lg">В Корзину</button>
+                <button
+                    onClick={onFinish}
+                    className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-xl font-black tracking-[0.2em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
+                >
+                    В Корзину
+                </button>
             </div>
         </div>
     )
 }
 
-// --- ИСПОЛЬЗУЕМ SVG ВМЕСТО ТЕКСТА ДЛЯ ЗУМА ---
+// --- ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ (без изменений) ---
 const ZoomControls = ({ zoomLevel, setZoom }) => (
-    <div className="flex flex-col gap-2 bg-white/20 backdrop-blur-md rounded-[11px] p-1 border border-white/30 shadow-xl">
-        <button
-            onClick={() => setZoom(Math.min(zoomLevel + 0.1, 2.5))}
-            className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-[8px] transition active:scale-95"
-        >
-            {/* SVG PLUS */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-        </button>
-        <div className="h-px w-full bg-white/20" />
-        <button
-            onClick={() => setZoom(Math.max(zoomLevel - 0.1, 0.5))}
-            className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-[8px] transition active:scale-95"
-        >
-            {/* SVG MINUS */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-        </button>
+    <div className="flex flex-col gap-1 bg-white/80 backdrop-blur-md rounded-[9px] p-1 border border-white/40 shadow-xl">
+        <button onClick={() => setZoom(Math.min(zoomLevel + 0.1, 2.5))} className="w-10 h-10 flex items-center justify-center text-[#1a1a1a] hover:bg-white rounded-[6px] transition active:scale-95"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+        <div className="h-px w-full bg-black/10" />
+        <button onClick={() => setZoom(Math.max(zoomLevel - 0.1, 0.5))} className="w-10 h-10 flex items-center justify-center text-[#1a1a1a] hover:bg-white rounded-[6px] transition active:scale-95"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
     </div>
 )
-
-const ZoomControlsOverlay = ({ zoomLevel, setZoom }) => (
-    <div className="absolute top-4 right-4 z-50">
-        <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
-    </div>
-)
-
+const ZoomControlsOverlay = ({ zoomLevel, setZoom }) => (<div className="absolute top-4 right-4 z-50"><ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} /></div>)
 const GlassDropdown = ({ label, currentValue, children, isColor = false, colorValue }) => {
     const [isOpen, setIsOpen] = useState(false);
     return (
@@ -175,7 +177,6 @@ const GlassDropdown = ({ label, currentValue, children, isColor = false, colorVa
         </div>
     )
 }
-
 const ColorGlassList = ({ label, currentColor, onSelect }) => (
     <GlassDropdown label={label} isColor={true} colorValue={currentColor}>
         <div className="flex flex-col gap-1">
@@ -189,7 +190,6 @@ const ColorGlassList = ({ label, currentColor, onSelect }) => (
         </div>
     </GlassDropdown>
 )
-
 const BlockIcon = ({ type }) => {
     const strokeClass = "stroke-white opacity-90";
     return (
