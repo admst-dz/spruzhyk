@@ -37,7 +37,7 @@ function App() {
                     {activeProduct === 'calendar' ? (
                         /* === СТРАНИЦА "В РАЗРАБОТКЕ" === */
                         <div className="w-full h-full flex flex-col items-center justify-center font-zen bg-[#E5E5E5] select-none">
-                            <h1 className="text-4xl md:text-8xl font-black tracking-[0.1em] uppercase text-center px-4 text-[#cfcfcf]"
+                            <h1 className="text-4xl md:text-8xl font-black tracking-[0.1em] uppercase text-center px-4 text-[#0f0f0f]"
                                 style={{ textShadow: '2px 2px 0px #ffffff, -1px -1px 0px rgba(0,0,0,0.1)' }}
                             >
                                 В Разработке

@@ -69,7 +69,7 @@ export const Home = ({ onStart }) => {
 
             </div>
 
-            <div className="mt-auto mb-6 text-gray-500 font-light text-lg tracking-wider">
+            <div className="mt-auto mb-6 text-black font-light text-lg tracking-wider">
                 By Spoogeek
             </div>
         </div>
