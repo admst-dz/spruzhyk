@@ -1,16 +1,51 @@
-# React + Vite
+# 📓 Spruzhyk Configurator 3D
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Status](https://img.shields.io/badge/status-beta-purple)
+![Tech](https://img.shields.io/badge/react-three%20fiber-black)
 
-Currently, two official plugins are available:
+Интерактивный 3D-конфигуратор полиграфической продукции с системой управления заказами для дилеров. Позволяет клиентам создавать уникальный дизайн ежедневников и календарей в реальном времени, а производству — получать структурированные заказы.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Технологический стек
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Frontend & 3D
+*   **React + Vite** — быстрая сборка и реактивный интерфейс.
+*   **Three.js / React Three Fiber (R3F)** — рендеринг 3D сцены.
+*   **Drei / Maath** — помощники для сцены, камеры и плавной анимации.
+*   **TailwindCSS** — стилизация UI (Glassmorphism, адаптивность).
+*   **Zustand** — управление состоянием приложения.
 
-## Expanding the ESLint configuration
+### Backend & Infrastructure
+*   **Firebase Authentication** — вход через Google и Email, разделение ролей.
+*   **Cloud Firestore** — NoSQL база данных (Users, Orders, Dealers).
+*   **Vercel / Firebase Hosting** — деплой приложения.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## ✨ Ключевые возможности
+
+### 🎨 Для Клиента
+1.  **3D Визуализация:**
+    *   Реалистичный рендер материалов (кожа, бумага, металл).
+    *   Поддержка **Твердого переплета** и **Пружины (Wire-O)** с процедурной генерацией колец.
+    *   Кастомизация: цвет обложки, цвет резинки, цвет пружины, формат (A5/A6), тип блока (клетка/линейка/точки).
+2.  **UX/UI:**
+    *   Адаптивный интерфейс (Mobile First подход).
+    *   Мгновенный расчет конфигурации.
+    *   Авторизация и сохранение истории (опционально).
+3.  **Оформление:**
+    *   Разделение на Физ. лиц и Юр. лиц.
+    *   Возможность заказа "Тиражного образца".
+
+### 💼 Для Дилера
+1.  **Личный кабинет:**
+    *   Дашборд со статистикой (Всего / Новые / В работе / Архив).
+    *   Просмотр всех поступающих заказов в реальном времени.
+2.  **Управление:**
+    *   Смена статусов заказов («В работу» -> «Готов»).
+    *   Доступ к контактным данным клиентов.
+
+---
+
