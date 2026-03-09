@@ -1,39 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react' // Добавили useEffect
 import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
 import { Interface } from './components/Interface'
 import { Home } from './components/Home'
 import { Order } from './components/Order'
-import { DealerDashboard } from './components/DealerDashboard' // <-- ИМПОРТ
-import { AuthModal } from './components/AuthModal'
 import { useConfigurator } from './store'
+// --- ИМПОРТЫ ДЛЯ АВТОРИЗАЦИИ И ДИЛЕРА ---
+import { DealerDashboard } from './components/DealerDashboard'
+import { AuthModal } from './components/AuthModal'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, getUserRole } from './firebase'
 
 function App() {
     const [screen, setScreen] = useState('home');
+    // --- СОСТОЯНИЕ ДЛЯ ОКНА ВХОДА ---
     const [showAuth, setShowAuth] = useState(false);
 
     const {
         activeProduct,
+        // --- ДАННЫЕ ЮЗЕРА ИЗ STORE ---
         setCurrentUser,
         setUserRole,
         setAuthLoading,
         currentUser,
-        userRole, // Достаем роль
+        userRole,
         logout
     } = useConfigurator();
 
-    // Следим за ролью: если Дилер вошел - перекидываем в кабинет
+    // --- ЛОГИКА: ПРОВЕРКА РОЛИ И ПЕРЕНАПРАВЛЕНИЕ ДИЛЕРА ---
     useEffect(() => {
         if (userRole === 'dealer') {
             setScreen('dealer');
         } else if (screen === 'dealer' && userRole !== 'dealer') {
-            // Если разлогинился или не дилер - на главную
             setScreen('home');
         }
-    }, [userRole]);
+    }, [userRole, screen]);
 
+    // --- ЛОГИКА: СЛУШАТЕЛЬ FIREBASE (ВОШЕЛ/ВЫШЕЛ) ---
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setAuthLoading(true);
@@ -48,51 +51,36 @@ function App() {
             setAuthLoading(false);
         });
         return () => unsubscribe();
-    }, []);
-
-    const ProfileButton = () => (
-        <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-            {currentUser ? (
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full px-4 py-2 shadow-sm border border-black/5 animate-fade-in">
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold text-black uppercase tracking-wider">
-                          {currentUser.displayName || currentUser.email.split('@')[0]}
-                      </span>
-                        {userRole === 'dealer' && <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">DEALER</span>}
-                    </div>
-                    <button onClick={() => { logout(); setScreen('home'); }} className="text-xs text-red-500 font-bold hover:text-red-700 underline">Выйти</button>
-                </div>
-            ) : (
-                <button onClick={() => setShowAuth(true)} className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm hover:bg-gray-800 transition shadow-lg font-zen">
-                    Войти
-                </button>
-            )}
-        </div>
-    );
+    }, [setCurrentUser, setUserRole, setAuthLoading]);
 
     return (
         <>
-            {/* Кнопка профиля (не показываем внутри Дашборда, там своя шапка) */}
-            {screen !== 'dealer' && <ProfileButton />}
-
+            {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
             {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
-            {/* РОУТИНГ ЭКРАНОВ */}
-
             {screen === 'home' && (
-                <Home onStart={() => setScreen('configurator')} />
+                <Home
+                    onStart={() => setScreen('configurator')}
+                    // Передаем пропсы для кнопки "Войти/Профиль" на главной
+                    onAuth={() => setShowAuth(true)}
+                    user={currentUser}
+                    logout={logout}
+                />
             )}
 
             {screen === 'order' && (
                 <Order onBack={() => setScreen('configurator')} />
             )}
 
+            {/* --- ЭКРАН КАБИНЕТА ДИЛЕРА --- */}
             {screen === 'dealer' && (
                 <DealerDashboard onBack={() => setScreen('home')} />
             )}
 
+            {/* ВАШ КОД БЕЗ ИЗМЕНЕНИЙ (добавлены только пропсы в Interface) */}
             {screen === 'configurator' && (
                 <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] overflow-hidden font-sans flex flex-col md:block">
+
                     <button
                         onClick={() => setScreen('home')}
                         className="absolute top-6 left-6 z-50 px-6 py-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-sm font-bold text-black hover:bg-white font-zen active:scale-95 transition-all border border-black/10"
@@ -102,21 +90,45 @@ function App() {
 
                     {activeProduct === 'calendar' ? (
                         <div className="w-full h-full flex flex-col items-center justify-center font-zen bg-[#E5E5E5] select-none">
-                            <h1 className="text-4xl md:text-8xl font-black tracking-[0.1em] uppercase text-center px-4 text-[#cfcfcf]" style={{ textShadow: '2px 2px 0px #ffffff, -1px -1px 0px rgba(0,0,0,0.1)' }}>В Разработке</h1>
-                            <p className="mt-8 text-black font-bold uppercase tracking-[0.2em] text-xs md:text-sm text-center opacity-60">Раздел "Настольный календарь" скоро появится</p>
+                            <h1 className="text-4xl md:text-8xl font-black tracking-[0.1em] uppercase text-center px-4 text-[#cfcfcf]"
+                                style={{ textShadow: '2px 2px 0px #ffffff, -1px -1px 0px rgba(0,0,0,0.1)' }}
+                            >
+                                В Разработке
+                            </h1>
+                            <p className="mt-8 text-black font-bold uppercase tracking-[0.2em] text-xs md:text-sm text-center opacity-60">
+                                Раздел "Настольный календарь" скоро появится
+                            </p>
                         </div>
                     ) : (
                         <>
                             <div className="relative w-full h-[45%] md:absolute md:inset-0 md:w-[75%] md:h-full bg-[#dcdcdc] md:bg-transparent">
-                                <Canvas camera={{ position: [0, 0, 4.5], fov: 45 }}>
+                                {/* ОБНОВЛЕННЫЕ НАСТРОЙКИ РЕНДЕРА */}
+                                <Canvas
+                                    shadows
+                                    dpr={[1, 2]} // Адаптация под ретину (Safari/iPhone)
+                                    camera={{ position: [0, 0, 4.5], fov: 45 }}
+                                    gl={{
+                                        antialias: true,
+                                        preserveDrawingBuffer: true,
+                                        logarithmicDepthBuffer: true // Важно для z-fighting
+                                    }}
+                                >
                                     <Experience />
                                 </Canvas>
                             </div>
+
                             <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
-                                <Interface onFinish={() => setScreen('order')} onAuth={() => setShowAuth(true)} user={currentUser} logout={logout}/>
+                                {/* Передаем пропсы для кнопки Войти внутри сайдбара конфигуратора */}
+                                <Interface
+                                    onFinish={() => setScreen('order')}
+                                    onAuth={() => setShowAuth(true)}
+                                    user={currentUser}
+                                    logout={logout}
+                                />
                             </div>
                         </>
                     )}
+
                 </div>
             )}
         </>
