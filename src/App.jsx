@@ -1,24 +1,22 @@
-import { useState, useEffect } from 'react' // Добавили useEffect
+import { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
 import { Interface } from './components/Interface'
 import { Home } from './components/Home'
 import { Order } from './components/Order'
-import { useConfigurator } from './store'
-// --- ИМПОРТЫ ДЛЯ АВТОРИЗАЦИИ И ДИЛЕРА ---
 import { DealerDashboard } from './components/DealerDashboard'
 import { AuthModal } from './components/AuthModal'
+import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬТЕ ЭТОТ ИМПОРТ
+import { useConfigurator } from './store'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, getUserRole } from './firebase'
 
 function App() {
     const [screen, setScreen] = useState('home');
-    // --- СОСТОЯНИЕ ДЛЯ ОКНА ВХОДА ---
     const [showAuth, setShowAuth] = useState(false);
 
     const {
         activeProduct,
-        // --- ДАННЫЕ ЮЗЕРА ИЗ STORE ---
         setCurrentUser,
         setUserRole,
         setAuthLoading,
@@ -27,14 +25,18 @@ function App() {
         logout
     } = useConfigurator();
 
-    // --- ЛОГИКА: ПРОВЕРКА РОЛИ И ПЕРЕНАПРАВЛЕНИЕ ДИЛЕРА ---
+    // --- ЛОГИКА: ПРОВЕРКА РОЛИ И РОУТИНГ ---
     useEffect(() => {
         if (userRole === 'dealer') {
             setScreen('dealer');
-        } else if (screen === 'dealer' && userRole !== 'dealer') {
+        } else if (userRole === 'client') {
+            setScreen('client_dashboard'); // <--- ВАЖНО: Роут для клиента
+        } else if (!userRole && (screen === 'dealer' || screen === 'client_dashboard')) {
             setScreen('home');
         }
     }, [userRole, screen]);
+
+    // ... остальной код (без изменений с прошлого рабочего варианта)
 
     // --- ЛОГИКА: СЛУШАТЕЛЬ FIREBASE (ВОШЕЛ/ВЫШЕЛ) ---
     useEffect(() => {
@@ -58,34 +60,50 @@ function App() {
             {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
             {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
+
+            {/* --- ЭКРАН: ГЛАВНАЯ СТРАНИЦА --- */}
             {screen === 'home' && (
                 <Home
                     onStart={() => setScreen('configurator')}
-                    // Передаем пропсы для кнопки "Войти/Профиль" на главной
                     onAuth={() => setShowAuth(true)}
                     user={currentUser}
                     logout={logout}
                 />
             )}
 
+
+            {/* --- ЭКРАН: КОРЗИНА ГОСТЯ --- */}
+            {/* Доступно только для незарегистрированных пользователей */}
             {screen === 'order' && (
                 <Order onBack={() => setScreen('configurator')} />
             )}
 
-            {/* --- ЭКРАН КАБИНЕТА ДИЛЕРА --- */}
+
+            {/* --- ЭКРАН: КАБИНЕТ ДИЛЕРА --- */}
             {screen === 'dealer' && (
                 <DealerDashboard onBack={() => setScreen('home')} />
             )}
 
-            {/* ВАШ КОД БЕЗ ИЗМЕНЕНИЙ (добавлены только пропсы в Interface) */}
+
+            {/* --- ЭКРАН: УМНЫЙ ДАШБОРД КЛИЕНТА (ПЛ, ПКЛ, КЛ) --- */}
+            {screen === 'client_dashboard' && (
+                <ClientDashboard
+                    onOpenConfigurator={() => setScreen('configurator')}
+                    onBack={() => setScreen('home')}
+                />
+            )}
+
+
+            {/* --- ЭКРАН: 3D КОНСТРУКТОР --- */}
             {screen === 'configurator' && (
                 <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] overflow-hidden font-sans flex flex-col md:block">
 
                     <button
-                        onClick={() => setScreen('home')}
+                        // Если юзер авторизован, кнопка "Назад" вернет его в дашборд, иначе на главную
+                        onClick={() => setScreen(currentUser ? (userRole === 'dealer' ? 'dealer' : 'client_dashboard') : 'home')}
                         className="absolute top-6 left-6 z-50 px-6 py-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-sm font-bold text-black hover:bg-white font-zen active:scale-95 transition-all border border-black/10"
                     >
-                        ← В Меню
+                        ← {currentUser ? 'В Кабинет' : 'В Меню'}
                     </button>
 
                     {activeProduct === 'calendar' ? (
@@ -102,7 +120,6 @@ function App() {
                     ) : (
                         <>
                             <div className="relative w-full h-[45%] md:absolute md:inset-0 md:w-[75%] md:h-full bg-[#dcdcdc] md:bg-transparent">
-                                {/* ОБНОВЛЕННЫЕ НАСТРОЙКИ РЕНДЕРА */}
                                 <Canvas
                                     shadows
                                     dpr={[1, 2]} // Адаптация под ретину (Safari/iPhone)
@@ -110,7 +127,7 @@ function App() {
                                     gl={{
                                         antialias: true,
                                         preserveDrawingBuffer: true,
-                                        logarithmicDepthBuffer: true // Важно для z-fighting
+                                        logarithmicDepthBuffer: true // Важно для устранения z-fighting в Safari
                                     }}
                                 >
                                     <Experience />
@@ -118,9 +135,9 @@ function App() {
                             </div>
 
                             <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
-                                {/* Передаем пропсы для кнопки Войти внутри сайдбара конфигуратора */}
                                 <Interface
-                                    onFinish={() => setScreen('order')}
+                                    // Кнопка "В Корзину": Гостей кидаем в Order, Авторизованных - в их Dashboard (вкладка согласования)
+                                    onFinish={() => setScreen(currentUser ? 'client_dashboard' : 'order')}
                                     onAuth={() => setShowAuth(true)}
                                     user={currentUser}
                                     logout={logout}

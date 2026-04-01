@@ -1,37 +1,40 @@
 import React, { useState } from 'react';
 import { useConfigurator } from "../store";
-import { createOrder } from "../firebase"; // Импорт функции
+import { db } from '../firebase'; // ИМПОРТИРУЕМ DB НАПРЯМУЮ
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // ИМПОРТИРУЕМ ФУНКЦИИ FIREBASE
 
 export const Order = ({ onBack }) => {
     const {
-        // Параметры продукта из стора
-        activeProduct, format, coverColor, elasticColor, hasElastic,
-        paperPattern, logoTexture, bindingType, spiralColor,
-        currentUser // Данные юзера (если залогинен)
+        format, coverColor, elasticColor, hasElastic,
+        paperPattern, logoTexture, bindingType, spiralColor
     } = useConfigurator();
 
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-
-    // Данные формы
     const [clientType, setClientType] = useState('phys');
     const [quantity, setQuantity] = useState(1);
     const [isSample, setIsSample] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
-    // Стейт для текстовых полей
     const [formData, setFormData] = useState({
-        name: '', phone: '', email: '',
-        address: '', inn: '', contactPerson: '', comment: ''
+        name: '', phone: '', email: '', address: '', inn: '', contactPerson: '', comment: ''
     });
 
-    // Обработчик ввода
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // ГЛАВНАЯ ФУНКЦИЯ: ОТПРАВКА ЗАКАЗА
+    const handleQuantityChange = (e) => {
+        const val = parseInt(e.target.value);
+        if (!isNaN(val) && val >= 1) { setQuantity(val); } else if (e.target.value === '') { setQuantity(''); }
+    };
+
+    const handleQuantityBlur = () => {
+        if (quantity === '' || quantity < 1) setQuantity(1);
+    };
+
+    // --- ОТПРАВКА ЗАКАЗА (ДЛЯ ГОСТЕЙ) ПРЯМО В БАЗУ ---
     const handleSubmit = async () => {
-        // Простейшая валидация
         if (!formData.name || !formData.phone) {
             alert("Пожалуйста, заполните Имя и Телефон");
             return;
@@ -40,78 +43,69 @@ export const Order = ({ onBack }) => {
         setLoading(true);
 
         const orderPayload = {
-            // Кто заказал (user ID или 'guest')
-            userId: currentUser ? currentUser.uid : 'guest',
-            userEmail: currentUser ? currentUser.email : (formData.email || 'guest'),
-
-            // Данные клиента из формы
+            userId: 'guest', // Это гость
+            userEmail: formData.email || 'Не указан',
             clientType,
-            clientInfo: formData,
-
-            // Параметры продукта (Сборка всего конфига)
+            contact: { ...formData },
             productConfig: {
-                type: activeProduct,
+                type: 'notebook',
                 format,
-                coverColor,
                 bindingType,
+                coverColor,
                 hasElastic,
                 elasticColor: hasElastic ? elasticColor : null,
                 spiralColor: bindingType === 'spiral' ? spiralColor : null,
                 paperPattern,
-                hasLogo: !!logoTexture
+                hasLogo: !!logoTexture,
             },
-
-            // Параметры тиража
             quantity,
-            isSample: clientType === 'jur' ? isSample : false,
-            amount: 'Рассчитывается менеджером' // Пока заглушка цены
+            isSample,
+            estimatedPrice: 'По запросу',
+            status: 'new', // Важно для дилера и воркера
+            createdAt: serverTimestamp(),
         };
 
         try {
-            await createOrder(orderPayload);
-            setSuccess(true); // Показываем экран успеха
+            // Прямая запись в Firestore
+            await addDoc(collection(db, 'Orders'), orderPayload);
+            setSuccess(true);
         } catch (error) {
-            alert("Ошибка при отправке: " + error.message);
+            console.error("Order error:", error);
+            alert("Ошибка сети. Попробуйте позже.");
         } finally {
             setLoading(false);
         }
     };
 
-    // ЭКРАН УСПЕХА
-    if (success) {
-        return (
-            <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] flex flex-col items-center justify-center font-zen z-50">
-                <div className="bg-white p-10 rounded-[20px] shadow-2xl text-center max-w-md animate-fade-in">
-                    <div className="text-6xl mb-4">✅</div>
-                    <h2 className="text-3xl font-black text-black mb-2">ЗАКАЗ ОТПРАВЛЕН</h2>
-                    <p className="text-gray-500 font-bold mb-8">Менеджер свяжется с вами в ближайшее время для подтверждения.</p>
-                    <button onClick={onBack} className="w-full py-4 bg-black text-white rounded-[12px] font-bold uppercase tracking-widest hover:bg-gray-800 transition">
-                        Вернуться в меню
-                    </button>
-                </div>
-            </div>
-        )
-    }
-
     const patternNames = { blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' };
     const bindingNames = { hard: 'Твердый', spiral: 'На пружине' };
 
-    return (
-        <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] font-zen overflow-y-auto z-50 text-black">
+    if (success) {
+        return (
+            <div className="w-full h-screen bg-[#E5E5E5] font-zen flex flex-col items-center justify-center text-center px-4 animate-fade-in text-black z-[100] relative">
+                <h1 className="text-4xl md:text-6xl font-black uppercase mb-6">Заказ принят!</h1>
+                <p className="text-gray-500 font-bold mb-8">Менеджер свяжется с вами в ближайшее время.</p>
+                <button onClick={onBack} className="px-8 py-3 bg-black text-white rounded-[12px] font-bold uppercase hover:bg-gray-800 transition">
+                    В меню
+                </button>
+            </div>
+        );
+    }
 
+    return (
+        <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] font-zen overflow-y-auto z-50">
             <div className="p-6 md:p-8 flex items-center sticky top-0 bg-[#E5E5E5]/90 backdrop-blur-md z-30">
-                <button onClick={onBack} className="flex items-center gap-2 px-6 py-2 bg-white rounded-full shadow-md text-sm font-bold text-black hover:scale-105 transition-transform border border-black/5">← Назад</button>
+                <button onClick={onBack} className="flex items-center gap-2 px-6 py-2 bg-white rounded-full shadow-md text-sm font-bold text-[#1a1a1a] hover:scale-105 transition-transform border border-black/5">← Назад в редактор</button>
             </div>
 
             <div className="flex flex-col lg:flex-row max-w-7xl mx-auto w-full px-4 md:px-8 gap-8 md:gap-16 pb-32 mt-4">
 
-                {/* ЛЕВАЯ КОЛОНКА (ПРЕВЬЮ) */}
+                {/* ЛЕВАЯ КОЛОНКА */}
                 <div className="w-full lg:w-1/3 flex flex-col gap-6">
-                    <h2 className="text-2xl md:text-3xl font-black uppercase">Ваш макет</h2>
+                    <h2 className="text-2xl md:text-3xl font-black text-[#1a1a1a] tracking-wide uppercase">Ваш макет</h2>
                     <div className="bg-white p-6 rounded-[20px] shadow-xl flex flex-col gap-6 border border-white/50">
                         <div className="flex gap-4 h-64">
-                            {/* CSS Визуализация */}
-                            <div className="flex-1 rounded-[12px] shadow-inner relative overflow-hidden border border-black/5" style={{ backgroundColor: coverColor }}>
+                            <div className="flex-1 rounded-[12px] shadow-inner relative overflow-hidden transition-colors duration-500 border border-black/5" style={{ backgroundColor: coverColor }}>
                                 {hasElastic && (<div className="absolute top-0 right-[20%] w-4 h-full shadow-sm z-10" style={{ backgroundColor: elasticColor }} />)}
                                 {logoTexture && (<div className="absolute bottom-6 right-6 text-white/50 text-xs font-bold border border-white/50 px-2 py-1 rounded">LOGO</div>)}
                                 <div className="absolute bottom-2 left-2 text-white/60 text-[10px] font-bold tracking-wider">ОБЛОЖКА</div>
@@ -122,14 +116,12 @@ export const Order = ({ onBack }) => {
                                 )}
                             </div>
                             <div className="flex-1 bg-white border border-gray-200 rounded-[12px] relative flex items-center justify-center">
-                                {/* Иконка блока (упрощенная) */}
-                                <div className="text-center">
-                                    <span className="text-2xl font-black block text-gray-200">{paperPattern.toUpperCase()}</span>
-                                </div>
+                                <div className="w-24 h-24 opacity-80 text-black"><BlockIconPreview type={paperPattern} /></div>
                                 <div className="absolute bottom-2 left-2 text-gray-400 text-[10px] font-bold tracking-wider">БЛОК</div>
                             </div>
                         </div>
-                        <div className="space-y-3 border-t border-gray-100 pt-5 text-sm font-bold">
+
+                        <div className="space-y-3 border-t border-gray-100 pt-5 text-sm font-bold text-[#1a1a1a]">
                             <Row label="Переплет" value={bindingNames[bindingType]} />
                             {bindingType === 'spiral' && <Row label="Пружина" value={<ColorDot color={spiralColor} />} />}
                             <Row label="Формат" value={format} />
@@ -140,36 +132,33 @@ export const Order = ({ onBack }) => {
                     </div>
                 </div>
 
-                {/* ПРАВАЯ КОЛОНКА (ФОРМА) */}
+                {/* ПРАВАЯ КОЛОНКА */}
                 <div className="w-full lg:w-2/3 flex flex-col gap-6">
-                    <h2 className="text-2xl md:text-3xl font-black uppercase">Оформление</h2>
+                    <h2 className="text-2xl md:text-3xl font-black text-[#1a1a1a] tracking-wide uppercase">Оформление</h2>
                     <div className="bg-white p-6 md:p-10 rounded-[20px] shadow-xl flex flex-col gap-8 border border-white/50">
-
                         <div className="bg-gray-100 p-1.5 rounded-[14px] flex shadow-inner">
-                            <button onClick={() => setClientType('phys')} className={`flex-1 py-3 text-xs md:text-sm font-bold uppercase tracking-widest rounded-[12px] transition-all ${clientType === 'phys' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}>Физ. Лицо</button>
-                            <button onClick={() => setClientType('jur')} className={`flex-1 py-3 text-xs md:text-sm font-bold uppercase tracking-widest rounded-[12px] transition-all ${clientType === 'jur' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}>Юр. Лицо</button>
+                            <button onClick={() => setClientType('phys')} className={`flex-1 py-3 text-xs md:text-sm font-bold uppercase tracking-widest rounded-[12px] transition-all duration-300 ${clientType === 'phys' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}>Физ. Лицо</button>
+                            <button onClick={() => setClientType('jur')} className={`flex-1 py-3 text-xs md:text-sm font-bold uppercase tracking-widest rounded-[12px] transition-all duration-300 ${clientType === 'jur' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}>Юр. Лицо</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {clientType === 'phys' ? (
                                 <>
-                                    <InputGroup label="ФИО" value={formData.name} onChange={(v) => handleChange('name', v)} placeholder="Иванов Иван" />
-                                    <InputGroup label="Телефон" value={formData.phone} onChange={(v) => handleChange('phone', v)} placeholder="+7 (999) 000-00-00" />
-                                    <InputGroup label="Email" value={formData.email} onChange={(v) => handleChange('email', v)} placeholder="mail@example.com" />
-                                    <InputGroup label="Адрес" value={formData.address} onChange={(v) => handleChange('address', v)} placeholder="Город, улица..." />
+                                    <InputGroup name="name" label="ФИО" placeholder="Иванов Иван" value={formData.name} onChange={handleInputChange} />
+                                    <InputGroup name="phone" label="Телефон" placeholder="+7..." type="tel" value={formData.phone} onChange={handleInputChange} />
+                                    <InputGroup name="email" label="Email" placeholder="mail@..." type="email" value={formData.email} onChange={handleInputChange} />
+                                    <InputGroup name="address" label="Адрес доставки" placeholder="Город..." value={formData.address} onChange={handleInputChange} />
                                 </>
                             ) : (
                                 <>
-                                    <InputGroup label="Компания" value={formData.name} onChange={(v) => handleChange('name', v)} placeholder='ООО "Компания"' />
-                                    <InputGroup label="ИНН" value={formData.inn} onChange={(v) => handleChange('inn', v)} placeholder="1234567890" />
-                                    <InputGroup label="Юр. Адрес" value={formData.address} onChange={(v) => handleChange('address', v)} placeholder="Индекс, Город..." />
-                                    <InputGroup label="Контакт" value={formData.contactPerson} onChange={(v) => handleChange('contactPerson', v)} placeholder="ФИО менеджера" />
-                                    <InputGroup label="Телефон" value={formData.phone} onChange={(v) => handleChange('phone', v)} placeholder="+7..." />
-                                    <InputGroup label="Email" value={formData.email} onChange={(v) => handleChange('email', v)} placeholder="corp@mail.ru" />
+                                    <InputGroup name="name" label="Название компании" placeholder='ООО "Пример"' value={formData.name} onChange={handleInputChange} />
+                                    <InputGroup name="inn" label="ИНН" placeholder="12345..." value={formData.inn} onChange={handleInputChange} />
+                                    <InputGroup name="contactPerson" label="Контактное лицо" placeholder="ФИО" value={formData.contactPerson} onChange={handleInputChange} />
+                                    <InputGroup name="phone" label="Телефон" placeholder="+7..." type="tel" value={formData.phone} onChange={handleInputChange} />
                                 </>
                             )}
                             <div className="md:col-span-2">
-                                <InputGroup label="Комментарий" value={formData.comment} onChange={(v) => handleChange('comment', v)} placeholder="Детали..." isTextarea={true} />
+                                <InputGroup name="comment" label="Комментарий" placeholder="Доп. информация..." isTextarea={true} value={formData.comment} onChange={handleInputChange} />
                             </div>
                         </div>
 
@@ -177,34 +166,28 @@ export const Order = ({ onBack }) => {
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Тираж (шт.)</span>
                                 <div className="flex items-center gap-2 bg-[#F5F5F5] rounded-[14px] p-2 border border-gray-200 w-max shadow-sm">
-                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-[10px] shadow-sm font-bold text-xl hover:scale-105 transition">-</button>
-                                    <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-16 bg-transparent text-center text-2xl font-black focus:outline-none"/>
-                                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-[10px] shadow-sm font-bold text-xl hover:scale-105 transition">+</button>
+                                    <button onClick={() => setQuantity(Number(quantity) > 1 ? Number(quantity) - 1 : 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-[10px] shadow-sm font-bold text-xl hover:scale-105 active:scale-95 transition">-</button>
+                                    <input type="number" min="1" value={quantity} onChange={handleQuantityChange} onBlur={handleQuantityBlur} className="w-16 bg-transparent text-center text-2xl font-black text-[#1a1a1a] focus:outline-none"/>
+                                    <button onClick={() => setQuantity(Number(quantity) + 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-[10px] shadow-sm font-bold text-xl hover:scale-105 active:scale-95 transition">+</button>
                                 </div>
                             </div>
                             {clientType === 'jur' && (
-                                <label className="flex items-center gap-4 cursor-pointer bg-[#EAF4FF] px-5 py-4 rounded-[16px] border border-blue-100 hover:border-blue-300 transition w-full md:w-auto">
-                                    <input type="checkbox" checked={isSample} onChange={(e) => setIsSample(e.target.checked)} className="w-6 h-6 border-2 border-blue-300 rounded checked:bg-blue-600" />
-                                    <div className="flex flex-col"><span className="font-bold text-[#1e3a8a] text-sm uppercase">Тиражный образец</span><span className="text-[10px] font-bold text-blue-400">Сделать 1 шт.</span></div>
+                                <label className="flex items-center gap-4 cursor-pointer group bg-[#EAF4FF] px-5 py-4 rounded-[16px] border border-blue-100 hover:border-blue-300 transition-all w-full md:w-auto">
+                                    <div className="relative flex items-center justify-center">
+                                        <input type="checkbox" checked={isSample} onChange={(e) => setIsSample(e.target.checked)} className="peer appearance-none w-6 h-6 border-2 border-blue-300 rounded bg-white checked:bg-blue-600 checked:border-blue-600 cursor-pointer transition-colors" />
+                                        <svg className="absolute w-4 h-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </div>
+                                    <div className="flex flex-col"><span className="font-bold text-[#1e3a8a] text-sm uppercase tracking-wide">Тиражный образец</span><span className="text-[10px] font-bold text-blue-400">Изготовление 1 шт. перед партией</span></div>
                                 </label>
                             )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <button className="py-5 rounded-[14px] border-2 border-gray-200 text-gray-500 font-bold uppercase tracking-widest hover:border-gray-400 hover:text-black transition">
-                                Консультация
-                            </button>
-
-                            {/* КНОПКА ОТПРАВКИ */}
-                            <button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className="py-5 rounded-[14px] bg-black text-white font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                            >
-                                {loading ? 'Отправка...' : 'Оформить Заказ →'}
+                            <button className="py-5 rounded-[14px] border-2 border-gray-200 text-gray-500 font-bold uppercase tracking-widest hover:border-gray-400 hover:text-black transition flex items-center justify-center gap-2 group">Консультация</button>
+                            <button onClick={handleSubmit} disabled={loading} className={`py-5 rounded-[14px] bg-[#1a1a1a] text-white font-bold uppercase tracking-widest hover:bg-black transition shadow-xl flex items-center justify-center gap-3 ${loading ? 'opacity-50 cursor-wait' : 'active:scale-[0.98]'}`}>
+                                <span>{loading ? 'Отправка...' : 'Оформить Заказ'}</span> {loading ? '' : <span className="text-xl">→</span>}
                             </button>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -212,25 +195,7 @@ export const Order = ({ onBack }) => {
     )
 }
 
-// Компоненты UI (немного доработаны для приема value/onChange)
-const Row = ({ label, value }) => (<div className="flex justify-between items-center py-1"><span className="text-gray-500 font-bold text-xs uppercase tracking-wider">{label}</span><span className="font-bold text-black">{value}</span></div>)
-const ColorDot = ({ color }) => (<div className="flex items-center justify-end gap-2"><div className="w-3.5 h-3.5 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color }} /><span className="uppercase text-xs font-black text-black">{color}</span></div>)
-
-const InputGroup = ({ label, placeholder, value, onChange, type = "text", isTextarea = false }) => (
-    <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold uppercase text-gray-400 ml-1 tracking-widest">{label}</label>
-        {isTextarea ? (
-            <textarea
-                value={value} onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                className="w-full p-4 bg-[#F9F9F9] border border-gray-200 rounded-[14px] text-black font-bold focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white transition-all resize-none h-32"
-            />
-        ) : (
-            <input
-                type={type} value={value} onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                className="w-full p-4 bg-[#F9F9F9] border border-gray-200 rounded-[14px] text-black font-bold focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white transition-all"
-            />
-        )}
-    </div>
-)
+const Row = ({ label, value }) => (<div className="flex justify-between items-center py-1"><span className="text-gray-400 font-bold text-xs uppercase tracking-wider">{label}</span><span className="font-bold text-[#1a1a1a] text-right">{value}</span></div>)
+const ColorDot = ({ color }) => (<div className="flex items-center justify-end gap-2"><div className="w-3.5 h-3.5 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color }} /><span className="uppercase text-xs font-black text-[#1a1a1a]">{color}</span></div>)
+const InputGroup = ({ label, placeholder, type = "text", isTextarea = false, value, onChange, name }) => (<div className="flex flex-col gap-2"><label className="text-[10px] font-bold uppercase text-gray-400 ml-1 tracking-widest">{label}</label>{isTextarea ? (<textarea name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full p-4 bg-[#F9F9F9] border border-gray-200 rounded-[14px] text-[#1a1a1a] font-bold focus:outline-none focus:ring-2 focus:ring-black/10 resize-none h-32"/>) : (<input name={name} value={value} onChange={onChange} type={type} placeholder={placeholder} className="w-full p-4 bg-[#F9F9F9] border border-gray-200 rounded-[14px] text-[#1a1a1a] font-bold focus:outline-none focus:ring-2 focus:ring-black/10"/>)}</div>)
+const BlockIconPreview = ({ type }) => (<svg viewBox="0 0 100 100" fill="none" className="w-full h-full">{type === 'lined' && <g stroke="#1a1a1a" strokeWidth="4" opacity="0.3"><line x1="10" y1="30" x2="90" y2="30"/><line x1="10" y1="50" x2="90" y2="50"/><line x1="10" y1="70" x2="90" y2="70"/></g>}{type === 'grid' && <g stroke="#1a1a1a" strokeWidth="3" opacity="0.3"><path d="M33 10 V90"/><path d="M66 10 V90"/><path d="M10 33 H90"/><path d="M10 66 H90"/></g>}{type === 'dotted' && <g fill="#1a1a1a" opacity="0.4"><circle cx="33" cy="33" r="4"/><circle cx="66" cy="33" r="4"/><circle cx="33" cy="66" r="4"/><circle cx="66" cy="66" r="4"/></g>}{type === 'blank' && <text x="50" y="55" textAnchor="middle" fill="#1a1a1a" opacity="0.2" fontSize="10" fontWeight="bold">BLANK</text>}</svg>)

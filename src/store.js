@@ -1,10 +1,9 @@
 import { create } from 'zustand'
-import { auth, getUserRole } from './firebase'
-import { signOut } from 'firebase/auth'
 
 export const useConfigurator = create((set) => ({
-    // ... Твои старые стейты (format, color и т.д.) оставь как были ...
     activeProduct: 'notebook',
+
+    // --- Параметры 3D модели ---
     bindingType: 'hard',
     format: 'A5',
     isNotebookOpen: false,
@@ -17,22 +16,28 @@ export const useConfigurator = create((set) => ({
     logoPosition: [0, 0],
     zoomLevel: 1,
 
-    // === AUTH STATE (НОВОЕ) ===
-    currentUser: null, // Объект юзера
-    userRole: null,    // 'client' | 'dealer'
-    authLoading: true, // Идет ли загрузка
+    // --- AUTH STATE ---
+    currentUser: null,
+    userRole: null, // 'client' | 'dealer'
 
-    // AUTH ACTIONS
+    // --- НОВЫЕ ПАРАМЕТРЫ ДЛЯ CLIENT DASHBOARD ---
+    // Роль внутри компании: 'PL' (сотрудник), 'PKL' (физлицо), 'KL' / 'KPR' / 'PR' (компания)
+    clientSubRole: 'PL',
+    tokenBalance: 500, // Баланс токенов для ПЛ/КЛ
+
+    authLoading: true,
+
+    // --- AUTH ACTIONS ---
     setCurrentUser: (user) => set({ currentUser: user }),
     setUserRole: (role) => set({ userRole: role }),
     setAuthLoading: (isLoading) => set({ authLoading: isLoading }),
+    logout: () => set({ currentUser: null, userRole: null }),
 
-    logout: async () => {
-        await signOut(auth);
-        set({ currentUser: null, userRole: null });
-    },
+    // --- НОВЫЕ ACTIONS ДЛЯ КЛИЕНТОВ ---
+    setClientSubRole: (subRole) => set({ clientSubRole: subRole }),
+    spendTokens: (amount) => set((state) => ({ tokenBalance: Math.max(0, state.tokenBalance - amount) })),
 
-    // ... Твои старые actions (setColor, setFormat и т.д.) оставь ниже ...
+    // --- ACTIONS 3D ---
     setProduct: (type) => set({ activeProduct: type }),
     setBindingType: (type) => set({ bindingType: type }),
     setFormat: (fmt) => set({ format: fmt }),
