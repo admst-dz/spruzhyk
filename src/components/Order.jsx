@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { useConfigurator } from "../store";
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Canvas } from '@react-three/fiber';
+import { PresentationControls, Stage, Environment } from '@react-three/drei';
+import { Notebook } from './Notebook';
+import { Sketchbook } from './Sketchbook';
 
 export const Order = ({ onBack }) => {
     const {
         format, coverColor, elasticColor, hasElastic,
         paperPattern, logos, bindingType, spiralColor,
-        renderSnapshot
+        activeProduct
     } = useConfigurator();
 
     const [clientType, setClientType] = useState('phys');
@@ -99,14 +103,25 @@ export const Order = ({ onBack }) => {
                     <h2 className="text-2xl md:text-3xl font-black text-[#1a1a1a] dark:text-white tracking-wide uppercase">Ваш макет</h2>
 
                     <div className="bg-white dark:bg-white/5 rounded-[20px] shadow-xl dark:shadow-none flex flex-col border border-white/50 dark:border-white/8 backdrop-blur-sm overflow-hidden">
-                        {renderSnapshot ? (
-                            <div className="relative bg-[#dcdcdc] dark:bg-[#0A0E1A]">
-                                <img src={renderSnapshot} alt="3D рендер" className="w-full aspect-video object-contain" />
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
-                                <div className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-md rounded-[10px] px-3 py-2 border border-white/15">
+                        {activeProduct !== 'calendar' ? (
+                            <div className="relative bg-[#dcdcdc] dark:bg-[#0A0E1A]" style={{ height: 280 }}>
+                                <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4.5], fov: 45 }} gl={{ antialias: true }}>
+                                    <Environment preset="city" />
+                                    <ambientLight intensity={0.6} />
+                                    <directionalLight position={[10, 10, 5]} intensity={1.5} />
+                                    <directionalLight position={[-10, 5, 2]} intensity={0.5} />
+                                    <PresentationControls speed={1.5} global polar={[-0.1, Math.PI / 4]}>
+                                        <Stage environment={null} intensity={0} contactShadow={false}>
+                                            {activeProduct === 'notebook' && <Notebook />}
+                                            {activeProduct === 'sketchbook' && <Sketchbook />}
+                                        </Stage>
+                                    </PresentationControls>
+                                </Canvas>
+                                <div className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-md rounded-[10px] px-3 py-2 border border-white/15 pointer-events-none">
                                     <div className="w-7 h-7 text-white"><BlockIconPreview type={paperPattern} /></div>
                                     <span className="text-white/70 text-xs font-bold uppercase tracking-wide">{patternNames[paperPattern]}</span>
                                 </div>
+                                <div className="absolute top-3 left-3 text-white/30 text-[10px] font-bold tracking-wider pointer-events-none uppercase">Перетащи для вращения</div>
                             </div>
                         ) : (
                             <div className="p-6 flex gap-4 h-64">
@@ -114,11 +129,6 @@ export const Order = ({ onBack }) => {
                                     {hasElastic && (<div className="absolute top-0 right-[20%] w-4 h-full shadow-sm z-10" style={{ backgroundColor: elasticColor }} />)}
                                     {logos.length > 0 && (<div className="absolute bottom-6 right-6 text-white/50 text-xs font-bold border border-white/50 px-2 py-1 rounded">LOGO</div>)}
                                     <div className="absolute bottom-2 left-2 text-white/60 text-[10px] font-bold tracking-wider">ОБЛОЖКА</div>
-                                    {bindingType === 'spiral' && (
-                                        <div className="absolute left-0 top-0 h-full w-5 flex flex-col justify-evenly pl-1 bg-black/5 border-r border-black/5">
-                                            {[1,2,3,4,5,6,7].map(i => <div key={i} className="w-3.5 h-2 rounded-full border border-black/20 shadow-sm ml-0.5" style={{backgroundColor: spiralColor === '#Silver' ? '#e0e0e0' : spiralColor}}/>)}
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="flex-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[12px] relative flex items-center justify-center">
                                     <div className="w-24 h-24 opacity-80 text-black dark:text-white"><BlockIconPreview type={paperPattern} /></div>
