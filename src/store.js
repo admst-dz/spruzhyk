@@ -1,5 +1,12 @@
 import { create } from 'zustand'
 
+let _webglCanvas = null
+export const registerWebGLCanvas = (el) => { _webglCanvas = el }
+export const captureRender = () => {
+    if (!_webglCanvas) return null
+    try { return _webglCanvas.toDataURL('image/png') } catch (e) { return null }
+}
+
 export const useConfigurator = create((set) => ({
     activeProduct: 'notebook', // 'notebook' | 'calendar' | 'sketchbook'
 
@@ -26,6 +33,7 @@ export const useConfigurator = create((set) => ({
     theme: 'dark',
 
     cartItem: null,
+    renderSnapshot: null,
 
     // --- ACTIONS ---
     setCurrentUser: (user) => set({ currentUser: user }),
@@ -44,6 +52,7 @@ export const useConfigurator = create((set) => ({
 
     addToCart: (itemData) => set({ cartItem: itemData }),
     clearCart: () => set({ cartItem: null }),
+    setRenderSnapshot: (url) => set({ renderSnapshot: url }),
 
     setProduct: (type) => set({ activeProduct: type }),
     setBindingType: (type) => set({ bindingType: type }),

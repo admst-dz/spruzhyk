@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useConfigurator } from "../store"
+import { useState } from 'react';
+import { useConfigurator, captureRender } from "../store"
 
 const palette = [
     { name: 'Kraft', bg: '#D2B48C' }, // Крафт
@@ -19,10 +19,13 @@ export const SketchbookInterface = ({ onFinish }) => {
         setNotebookOpen,
         paperPattern, setPaperPattern,
         logos, selectedLogoId, addLogo, selectLogo, setLogoPosition,
-        zoomLevel, setZoom, addToCart
+        zoomLevel, setZoom, addToCart,
+        setRenderSnapshot
     } = useConfigurator();
 
     const handleAddToCart = () => {
+        const snapshot = captureRender()
+        if (snapshot) setRenderSnapshot(snapshot)
         const newItem = {
             productName: `Блокнот (Скетчбук) ${format}`,
             design: `Пружина: ${spiralColor}, Блок: ${paperPattern}`,

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useConfigurator } from "../store"
+import { useState } from 'react';
+import { useConfigurator, captureRender } from "../store"
 
 const palette = [
     { name: 'Yellow', bg: '#FDD835' },
@@ -25,7 +25,8 @@ export const Interface = ({ onFinish }) => {
         logos, selectedLogoId, addLogo, selectLogo, setLogoPosition,
         activeProduct,
         zoomLevel, setZoom,
-        addToCart // ДОСТАЛИ ФУНКЦИЮ ДОБАВЛЕНИЯ В КОРЗИНУ
+        addToCart,
+        setRenderSnapshot
     } = useConfigurator();
 
     if (activeProduct === 'calendar') {
@@ -41,6 +42,8 @@ export const Interface = ({ onFinish }) => {
 
     // Обработчик нажатия "В Корзину"
     const handleAddToCart = () => {
+        const snapshot = captureRender()
+        if (snapshot) setRenderSnapshot(snapshot)
         const newItem = {
             productName: `Ежедневник ${format}`,
             design: `Переплет: ${bindingType === 'hard' ? 'Твердый' : 'Пружина'}, Блок: ${paperPattern}`,

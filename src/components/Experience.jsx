@@ -1,11 +1,20 @@
 import { PresentationControls, Stage, Environment } from '@react-three/drei'
 import { Notebook } from './Notebook'
 import { Calendar } from './Calendar'
-import { useConfigurator } from '../store'
+import { useConfigurator, registerWebGLCanvas } from '../store'
 import { useEffect, useRef, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { easing } from 'maath'
 import { Sketchbook } from './Sketchbook'
+
+function CanvasRegistrar() {
+    const { gl } = useThree()
+    useEffect(() => {
+        registerWebGLCanvas(gl.domElement)
+        return () => registerWebGLCanvas(null)
+    }, [gl.domElement])
+    return null
+}
 
 function WheelZoom() {
     const { gl } = useThree()
@@ -35,7 +44,7 @@ function WheelZoom() {
 function CameraUpdater({ targetZoom }) {
     const { camera } = useThree()
 
-    useFrame((state, delta) => {
+    useFrame((_, delta) => {
         // Плавная интерполяция зума (damp)
         // camera.zoom меняется от текущего к targetZoom
         easing.damp(camera, 'zoom', targetZoom, 0.25, delta)
@@ -71,6 +80,7 @@ export const Experience = () => {
 
     return (
         <>
+            <CanvasRegistrar />
             <CameraUpdater targetZoom={finalZoom} />
             <WheelZoom />
 
