@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useConfigurator, captureRender } from "../store"
 
 const palette = [
@@ -22,7 +22,7 @@ export const Interface = ({ onFinish }) => {
         hasElastic, setHasElastic,
         setNotebookOpen,
         paperPattern, setPaperPattern,
-        logos, selectedLogoId, addLogo, selectLogo, setLogoPosition, setLogoRotation, setLogoScale,
+        logos, selectedLogoId, addLogo, selectLogo, removeLogo, resetLogoTransform, setLogoPosition, setLogoRotation, setLogoScale,
         activeProduct,
         zoomLevel, setZoom,
         addToCart,
@@ -92,7 +92,7 @@ export const Interface = ({ onFinish }) => {
                             {hasElastic && (<div className="border-t border-white/10"><ColorGlassList currentColor={elasticColor} onSelect={(c) => setColor('elastic', c)} label="Цвет резинки" /></div>)}
                         </div>
                         <div className="glass-panel rounded-[11px] overflow-hidden"><ColorGlassList currentColor={coverColor} onSelect={(c) => setColor('cover', c)} label="Цвет обложки"/></div>
-                        <LogoPanel logos={logos} selectedLogoId={selectedLogoId} addLogo={addLogo} selectLogo={selectLogo} setLogoPosition={setLogoPosition} setLogoRotation={setLogoRotation} setLogoScale={setLogoScale} />
+                        <LogoPanel logos={logos} selectedLogoId={selectedLogoId} addLogo={addLogo} selectLogo={selectLogo} removeLogo={removeLogo} resetLogoTransform={resetLogoTransform} setLogoPosition={setLogoPosition} setLogoRotation={setLogoRotation} setLogoScale={setLogoScale} />
                     </div>
                 )}
 
@@ -125,8 +125,10 @@ export const Interface = ({ onFinish }) => {
 }
 
 // --- ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ ---
-const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition, setLogoRotation, setLogoScale }) => {
+const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLogo, resetLogoTransform, setLogoPosition, setLogoRotation, setLogoScale }) => {
     const selected = logos.find(l => l.id === selectedLogoId) || null;
+    const rotStart = useRef(0);
+    const rotStartX = useRef(null);
 
     const updatePos = (e) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -145,16 +147,20 @@ const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition
             {logos.length > 0 && (
                 <div className="flex flex-col gap-2 mb-4">
                     {logos.map(logo => (
-                        <button key={logo.id} onClick={() => selectLogo(logo.id)} className={`py-2 px-3 rounded-[6px] text-left text-sm font-bold truncate transition-colors border ${logo.id === selectedLogoId ? 'bg-white/30 border-white/40' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}>
-                            {logo.filename}
-                        </button>
+                        <div key={logo.id} className={`flex items-center rounded-[6px] border ${logo.id === selectedLogoId ? 'bg-white/30 border-white/40' : 'bg-white/10 border-white/10'}`}>
+                            <button onClick={() => selectLogo(logo.id)} className="flex-1 py-2 px-3 text-left text-sm font-bold truncate hover:opacity-80 transition-opacity">{logo.filename}</button>
+                            <button onClick={() => removeLogo(logo.id)} className="px-3 py-2 text-white/40 hover:text-white/90 text-lg leading-none transition-colors shrink-0" title="Удалить">×</button>
+                        </div>
                     ))}
                 </div>
             )}
             {selected && (
                 <div className="flex flex-col gap-4 mt-1">
                     <div className="flex flex-col gap-1">
-                        <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest mb-1">Позиция</span>
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest">Позиция</span>
+                            <button onClick={resetLogoTransform} className="text-[10px] font-bold opacity-40 hover:opacity-80 transition-opacity uppercase tracking-wider border border-white/20 px-2 py-0.5 rounded-[5px] hover:border-white/40">↺ По центру</button>
+                        </div>
                         <div
                             className="relative w-full aspect-square bg-white/8 rounded-[10px] border border-white/15 cursor-crosshair touch-none select-none overflow-hidden"
                             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updatePos(e); }}
@@ -177,15 +183,28 @@ const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <div className="flex justify-between items-center">
                             <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest">Поворот</span>
                             <span className="text-xs font-bold opacity-80">{Math.round((selected.rotation ?? 0) * 180 / Math.PI)}°</span>
                         </div>
-                        <input type="range" min="-180" max="180" step="1"
-                            value={Math.round((selected.rotation ?? 0) * 180 / Math.PI)}
-                            onChange={(e) => setLogoRotation(parseFloat(e.target.value) * Math.PI / 180)}
-                            className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/>
+                        <div
+                            className="relative h-10 rounded-[10px] border border-white/15 cursor-ew-resize touch-none select-none overflow-hidden"
+                            style={{
+                                backgroundColor: 'rgba(255,255,255,0.07)',
+                                backgroundImage: `repeating-linear-gradient(to right, transparent 14px, rgba(255,255,255,0.22) 14px, rgba(255,255,255,0.22) 15px, transparent 15px), repeating-linear-gradient(to right, transparent 89px, rgba(255,255,255,0.55) 89px, rgba(255,255,255,0.55) 90px, transparent 90px)`,
+                                backgroundSize: '15px 35%, 90px 65%',
+                                backgroundPosition: `${(selected.rotation ?? 0) * 180 / Math.PI * 1.5}px center, ${(selected.rotation ?? 0) * 180 / Math.PI * 1.5}px center`,
+                                backgroundRepeat: 'repeat-x, repeat-x',
+                            }}
+                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); rotStart.current = selected.rotation ?? 0; rotStartX.current = e.clientX; }}
+                            onPointerMove={(e) => { if (!e.buttons || rotStartX.current === null) return; setLogoRotation(rotStart.current + (e.clientX - rotStartX.current) * 0.015); }}
+                            onPointerUp={() => { rotStartX.current = null; }}
+                        >
+                            <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/50 -translate-x-1/2 rounded-full pointer-events-none" />
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] text-white/20 font-bold pointer-events-none select-none">←</span>
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-white/20 font-bold pointer-events-none select-none">→</span>
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-1">

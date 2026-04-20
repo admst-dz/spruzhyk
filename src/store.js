@@ -82,5 +82,17 @@ export const useConfigurator = create((set) => ({
     setLogoScale: (scale) => set((state) => ({
         logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, scale } : l)
     })),
+    resetLogoTransform: () => set((state) => ({
+        logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, position: [0, 0], rotation: 0, scale: 0.6 } : l)
+    })),
+    removeLogo: (id) => set((state) => {
+        const remaining = state.logos.filter(l => l.id !== id);
+        return {
+            logos: remaining,
+            selectedLogoId: state.selectedLogoId === id
+                ? (remaining.length > 0 ? remaining[remaining.length - 1].id : null)
+                : state.selectedLogoId
+        };
+    }),
     setZoom: (val) => set({ zoomLevel: val }),
 }))
