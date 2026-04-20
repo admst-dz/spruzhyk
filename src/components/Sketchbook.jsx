@@ -5,7 +5,14 @@ import { useConfigurator } from '../store'
 import { Decal, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
-const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+function LogoDecal({ texture, x, y, z }) {
+    const map = useTexture(texture);
+    return (
+        <Decal position={[x, y, z]} rotation={[0, 0, 0]} scale={[0.6, 0.6, 1]} renderOrder={1}>
+            <meshPhysicalMaterial map={map} transparent depthTest depthWrite={false} polygonOffset polygonOffsetFactor={-10} roughness={0.8}/>
+        </Decal>
+    );
+}
 
 // --- ГЕНЕРАТОР УЗОРОВ ---
 function createPatternTexture(type) {
@@ -29,7 +36,7 @@ function createPatternTexture(type) {
 export function Sketchbook(props) {
     const {
         format, coverColor, spiralColor,
-        logoTexture, logoPosition,
+        logos,
         isNotebookOpen, paperPattern
     } = useConfigurator()
 
@@ -61,7 +68,6 @@ export function Sketchbook(props) {
         return tex;
     }, [paperPattern, format]);
 
-    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     useFrame((state, delta) => {
         if(coverMat.current) easing.dampC(coverMat.current.color, coverColor, 0.25, delta)
@@ -123,11 +129,9 @@ export function Sketchbook(props) {
                         <boxGeometry args={[dims.w, dims.h, coverThick]} />
                         <meshStandardMaterial color={coverColor} roughness={0.8} />
 
-                        {logoTexture && (
-                            <Decal position={[logoPosition[0], logoPosition[1], coverThick/2+0.001]} rotation={[0,0,0]} scale={[0.6,0.6,1]} renderOrder={1}>
-                                <meshPhysicalMaterial map={logoMap} transparent depthTest depthWrite={false} polygonOffset polygonOffsetFactor={-10} roughness={0.8}/>
-                            </Decal>
-                        )}
+                        {logos.map(logo => (
+                            <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={coverThick/2+0.001} />
+                        ))}
                     </mesh>
 
                     {Array.from({ length: spiralCount }).map((_, i) => (

@@ -22,7 +22,7 @@ export const Interface = ({ onFinish }) => {
         hasElastic, setHasElastic,
         setNotebookOpen,
         paperPattern, setPaperPattern,
-        setLogo, logoPosition, setLogoPosition,
+        logos, selectedLogoId, addLogo, selectLogo, setLogoPosition,
         activeProduct,
         zoomLevel, setZoom,
         addToCart // ДОСТАЛИ ФУНКЦИЮ ДОБАВЛЕНИЯ В КОРЗИНУ
@@ -89,14 +89,7 @@ export const Interface = ({ onFinish }) => {
                             {hasElastic && (<div className="border-t border-white/10"><ColorGlassList currentColor={elasticColor} onSelect={(c) => setColor('elastic', c)} label="Цвет резинки" /></div>)}
                         </div>
                         <div className="glass-panel rounded-[11px] overflow-hidden"><ColorGlassList currentColor={coverColor} onSelect={(c) => setColor('cover', c)} label="Цвет обложки"/></div>
-                        <div className="glass-panel rounded-[11px] p-5">
-                            <h3 className="text-xl font-bold tracking-wide mb-4">Тиснение</h3>
-                            <label className="block w-full py-3 bg-white/10 rounded-[6px] text-center cursor-pointer border border-white/20 text-sm font-bold mb-5">ЗАГРУЗИТЬ ЛОГОТИП<input type="file" onChange={(e) => setLogo(e.target.files[0])} className="hidden"/></label>
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">X</span><input type="range" min="-0.4" max="0.4" step="0.01" value={logoPosition[0]} onChange={(e) => setLogoPosition(parseFloat(e.target.value), logoPosition[1])} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
-                                <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">Y</span><input type="range" min="-0.8" max="0.8" step="0.01" value={logoPosition[1]} onChange={(e) => setLogoPosition(logoPosition[0], parseFloat(e.target.value))} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
-                            </div>
-                        </div>
+                        <LogoPanel logos={logos} selectedLogoId={selectedLogoId} addLogo={addLogo} selectLogo={selectLogo} setLogoPosition={setLogoPosition} />
                     </div>
                 )}
 
@@ -129,6 +122,33 @@ export const Interface = ({ onFinish }) => {
 }
 
 // --- ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ ---
+const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition }) => {
+    const selected = logos.find(l => l.id === selectedLogoId) || null;
+    return (
+        <div className="glass-panel rounded-[11px] p-5">
+            <h3 className="text-xl font-bold tracking-wide mb-4">Тиснение</h3>
+            <label className="block w-full py-3 bg-white/10 rounded-[6px] text-center cursor-pointer border border-white/20 text-sm font-bold mb-4 hover:bg-white/20 transition-colors">
+                + ДОБАВИТЬ ЛОГОТИП
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files[0]) { addLogo(e.target.files[0]); e.target.value = ''; } }} className="hidden"/>
+            </label>
+            {logos.length > 0 && (
+                <div className="flex flex-col gap-2 mb-4">
+                    {logos.map(logo => (
+                        <button key={logo.id} onClick={() => selectLogo(logo.id)} className={`py-2 px-3 rounded-[6px] text-left text-sm font-bold truncate transition-colors border ${logo.id === selectedLogoId ? 'bg-white/30 border-white/40' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}>
+                            {logo.filename}
+                        </button>
+                    ))}
+                </div>
+            )}
+            {selected && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">X</span><input type="range" min="-0.4" max="0.4" step="0.01" value={selected.position[0]} onChange={(e) => setLogoPosition(parseFloat(e.target.value), selected.position[1])} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
+                    <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">Y</span><input type="range" min="-0.8" max="0.8" step="0.01" value={selected.position[1]} onChange={(e) => setLogoPosition(selected.position[0], parseFloat(e.target.value))} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
+                </div>
+            )}
+        </div>
+    );
+};
 const ZoomControls = ({ zoomLevel, setZoom }) => (
     <div className="flex flex-col gap-1 bg-white/80 backdrop-blur-md rounded-[9px] p-1 border border-white/40 shadow-xl">
         <button onClick={() => setZoom(Math.min(zoomLevel + 0.1, 2.5))} className="w-10 h-10 flex items-center justify-center text-[#1a1a1a] hover:bg-white rounded-[6px] transition active:scale-95"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>

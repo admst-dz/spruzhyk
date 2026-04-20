@@ -5,10 +5,17 @@ import { useConfigurator } from '../store'
 import { Decal, useTexture, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
-const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+function LogoDecal({ texture, x, y, z }) {
+    const map = useTexture(texture);
+    return (
+        <Decal position={[x, y, z]} rotation={[0, 0, 0]} scale={[0.6, 0.6, 1]}>
+            <meshPhysicalMaterial map={map} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
+        </Decal>
+    );
+}
 
 // --- 1. МОДЕЛЬ НА ПРУЖИНЕ (GLB - БЕЗОПАСНАЯ ЗАГРУЗКА) ---
-function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...props }) {
+function SpiralModel({ coverColor, spiralColor, logos, ...props }) {
     // Загрузка
     const { nodes } = useGLTF('/models/spiral.glb')
 
@@ -35,7 +42,6 @@ function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...pr
     const spiralGeo = getGeo(['Spiral', 'spiral', 'Circle', 'Spring']);
     const pagesGeo = getGeo(['Pages', 'pages', 'Paper', 'Block']);
 
-    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
     const coverMatRef = useRef()
     const spiralMatRef = useRef()
 
@@ -55,15 +61,9 @@ function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...pr
                 <mesh geometry={coverGeo} castShadow receiveShadow>
                     <meshStandardMaterial ref={coverMatRef} color={coverColor} roughness={0.4} />
 
-                    {logoTexture && (
-                        <Decal
-                            position={[logoPosition[0], logoPosition[1], 0.1]}
-                            rotation={[0, 0, 0]}
-                            scale={[0.6, 0.6, 1]}
-                        >
-                            <meshPhysicalMaterial map={logoMap} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
-                        </Decal>
-                    )}
+                    {logos.map(logo => (
+                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={0.1} />
+                    ))}
                 </mesh>
             )}
 
@@ -87,7 +87,7 @@ function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...pr
 
 
 // --- 2. ТВЕРДЫЙ ПЕРЕПЛЕТ (ПРОЦЕДУРНЫЙ КОД - БЕЗ ИЗМЕНЕНИЙ) ---
-function HardCoverModel({ coverColor, dims, elasticColor, hasElastic, logoTexture, logoPosition, logoMap, isNotebookOpen }) {
+function HardCoverModel({ coverColor, dims, elasticColor, hasElastic, logos, isNotebookOpen }) {
     const group = useRef()
     const frontCoverGroup = useRef()
     const coverMat = useRef()
@@ -129,11 +129,9 @@ function HardCoverModel({ coverColor, dims, elasticColor, hasElastic, logoTextur
                 <mesh position={[dims.w/2, 0, 0]}>
                     <boxGeometry args={[dims.w, dims.h, coverThick]} />
                     <meshStandardMaterial color={coverColor} roughness={0.4} />
-                    {logoTexture && (
-                        <Decal position={[logoPosition[0], logoPosition[1], coverThick/2+0.001]} rotation={[0,0,0]} scale={[0.6,0.6,1]}>
-                            <meshPhysicalMaterial map={logoMap} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
-                        </Decal>
-                    )}
+                    {logos.map(logo => (
+                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={coverThick/2+0.001} />
+                    ))}
                 </mesh>
                 {hasElastic && (
                     <group position={[dims.w * 0.85, 0, 0]}>
@@ -160,12 +158,11 @@ export function Notebook(props) {
     const {
         format, bindingType,
         coverColor, hasElastic, elasticColor, spiralColor,
-        logoTexture, logoPosition,
+        logos,
         isNotebookOpen
     } = useConfigurator()
 
     const dims = format === 'A5' ? { w: 1.5, h: 2.1 } : { w: 1.05, h: 1.48 };
-    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     useGLTF.preload('/models/spiral.glb')
 
@@ -177,17 +174,14 @@ export function Notebook(props) {
                     dims={dims}
                     elasticColor={elasticColor}
                     hasElastic={hasElastic}
-                    logoTexture={logoTexture}
-                    logoPosition={logoPosition}
-                    logoMap={logoMap}
+                    logos={logos}
                     isNotebookOpen={isNotebookOpen}
                 />
             ) : (
                 <SpiralModel
                     coverColor={coverColor}
                     spiralColor={spiralColor}
-                    logoTexture={logoTexture}
-                    logoPosition={logoPosition}
+                    logos={logos}
                     // МАСШТАБ И ПОВОРОТ ПОДБИРАЙТЕ ТУТ
                     scale={20}
                     rotation={[Math.PI/2, 0, 0]}

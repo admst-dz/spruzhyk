@@ -4,10 +4,17 @@ import { easing } from 'maath'
 import { useConfigurator } from '../store'
 import { Decal, useTexture } from '@react-three/drei'
 
-const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+function LogoDecal({ texture }) {
+    const map = useTexture(texture);
+    return (
+        <Decal position={[0.5, 0, 0.6]} rotation={[0, 0, -Math.PI / 3]} scale={[0.6, 0.6, 1]}>
+            <meshPhysicalMaterial map={map} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
+        </Decal>
+    );
+}
 
 export function Calendar(props) {
-    const { coverColor, spiralColor, logoTexture } = useConfigurator()
+    const { coverColor, spiralColor, logos } = useConfigurator()
 
     const baseMat = useRef()
     const spiralMat = useRef()
@@ -16,8 +23,6 @@ export function Calendar(props) {
         if(baseMat.current) easing.dampC(baseMat.current.color, coverColor, 0.25, delta)
         if(spiralMat.current) easing.dampC(spiralMat.current.color, spiralColor, 0.25, delta)
     })
-
-    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     return (
         <group {...props} dispose={null} rotation={[0, -0.5, 0]}>
@@ -32,15 +37,7 @@ export function Calendar(props) {
                 <cylinderGeometry args={[1, 1, 2.5, 3, 1]} />
                 <meshStandardMaterial ref={baseMat} color={coverColor} roughness={0.6} />
 
-                {/* Логотип на лицевой стороне подставки */}
-                {logoTexture && (
-                    <Decal
-                        position={[0.5, 0, 0.6]} // Подбираем грань
-                        rotation={[0, 0, -Math.PI / 3]} // Поворачиваем под наклоном грани
-                        scale={[0.6, 0.6, 1]}
-                        map={logoMap}
-                    />
-                )}
+                {logos.map(logo => <LogoDecal key={logo.id} texture={logo.texture} />)}
             </mesh>
 
             {/* 2. Бумажный блок (лежит на одной грани) */}

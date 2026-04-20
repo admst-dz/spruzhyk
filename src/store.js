@@ -12,8 +12,8 @@ export const useConfigurator = create((set) => ({
     hasElastic: true,
     elasticColor: '#1a1a1a',
     spiralColor: '#1a1a1a', // Черная пружина по умолчанию для скетчбука
-    logoTexture: null,
-    logoPosition: [0, 0],
+    logos: [],
+    selectedLogoId: null,
     zoomLevel: 1,
 
     // --- AUTH И РОЛИ ---
@@ -52,13 +52,20 @@ export const useConfigurator = create((set) => ({
     setHasElastic: (has) => set({ hasElastic: has }),
     setNotebookOpen: (isOpen) => set({ isNotebookOpen: isOpen }),
     setPaperPattern: (pattern) => set({ paperPattern: pattern, isNotebookOpen: true }),
-    setLogo: (file) => {
+    addLogo: (file) => {
         if (file instanceof File) {
             const reader = new FileReader();
-            reader.onload = (e) => set({ logoTexture: e.target.result });
+            const id = Date.now();
+            reader.onload = (e) => set((state) => ({
+                logos: [...state.logos, { id, texture: e.target.result, filename: file.name, position: [0, 0] }],
+                selectedLogoId: id
+            }));
             reader.readAsDataURL(file);
         }
     },
-    setLogoPosition: (x, y) => set({ logoPosition: [x, y] }),
+    selectLogo: (id) => set({ selectedLogoId: id }),
+    setLogoPosition: (x, y) => set((state) => ({
+        logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, position: [x, y] } : l)
+    })),
     setZoom: (val) => set({ zoomLevel: val }),
 }))

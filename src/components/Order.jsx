@@ -6,7 +6,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // И�
 export const Order = ({ onBack }) => {
     const {
         format, coverColor, elasticColor, hasElastic,
-        paperPattern, logoTexture, bindingType, spiralColor
+        paperPattern, logos, bindingType, spiralColor
     } = useConfigurator();
 
     const [clientType, setClientType] = useState('phys');
@@ -56,7 +56,7 @@ export const Order = ({ onBack }) => {
                 elasticColor: hasElastic ? elasticColor : null,
                 spiralColor: bindingType === 'spiral' ? spiralColor : null,
                 paperPattern,
-                hasLogo: !!logoTexture,
+                hasLogo: logos.length > 0,
             },
             quantity,
             isSample,
@@ -107,7 +107,7 @@ export const Order = ({ onBack }) => {
                         <div className="flex gap-4 h-64">
                             <div className="flex-1 rounded-[12px] shadow-inner relative overflow-hidden transition-colors duration-500 border border-black/5" style={{ backgroundColor: coverColor }}>
                                 {hasElastic && (<div className="absolute top-0 right-[20%] w-4 h-full shadow-sm z-10" style={{ backgroundColor: elasticColor }} />)}
-                                {logoTexture && (<div className="absolute bottom-6 right-6 text-white/50 text-xs font-bold border border-white/50 px-2 py-1 rounded">LOGO</div>)}
+                                {logos.length > 0 && (<div className="absolute bottom-6 right-6 text-white/50 text-xs font-bold border border-white/50 px-2 py-1 rounded">LOGO</div>)}
                                 <div className="absolute bottom-2 left-2 text-white/60 text-[10px] font-bold tracking-wider">ОБЛОЖКА</div>
                                 {bindingType === 'spiral' && (
                                     <div className="absolute left-0 top-0 h-full w-5 flex flex-col justify-evenly pl-1 bg-black/5 border-r border-black/5">
