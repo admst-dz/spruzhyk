@@ -12,8 +12,7 @@ const palette = [
     { name: 'Silver', bg: '#Silver' },
 ];
 
-// ПРИНИМАЕМ НОВЫЕ PROPS: onAuth, user, logout
-export const Interface = ({ onFinish, onAuth, user, logout }) => {
+export const Interface = ({ onFinish }) => {
     const [tab, setTab] = useState('cover');
 
     const {
@@ -25,107 +24,71 @@ export const Interface = ({ onFinish, onAuth, user, logout }) => {
         paperPattern, setPaperPattern,
         setLogo, logoPosition, setLogoPosition,
         activeProduct,
-        zoomLevel, setZoom
+        zoomLevel, setZoom,
+        addToCart // ДОСТАЛИ ФУНКЦИЮ ДОБАВЛЕНИЯ В КОРЗИНУ
     } = useConfigurator();
 
-    if (activeProduct === 'calendar') return null; // Заглушка управляется в App
+    if (activeProduct === 'calendar') {
+        return (
+            <div className="pointer-events-auto w-full h-full md:h-[95%] custom-gradient backdrop-blur-xl rounded-t-[30px] md:rounded-[9px] flex items-center justify-center border-t md:border border-white/30 relative">
+                <ZoomControlsOverlay zoomLevel={zoomLevel} setZoom={setZoom} />
+                <div className="font-zen text-2xl font-bold uppercase tracking-widest text-white drop-shadow-md">
+                    Визуализация
+                </div>
+            </div>
+        );
+    }
+
+    // Обработчик нажатия "В Корзину"
+    const handleAddToCart = () => {
+        const newItem = {
+            productName: `Ежедневник ${format}`,
+            design: `Переплет: ${bindingType === 'hard' ? 'Твердый' : 'Пружина'}, Блок: ${paperPattern}`,
+            priceTK: 35,
+            priceRUB: 1500,
+            config: { format, coverColor, hasElastic, elasticColor, paperPattern, bindingType, spiralColor },
+            status: 'draft',
+            rendersGenerated: 0
+        };
+        addToCart(newItem);
+        onFinish(); // Переход на экран корзины
+    };
 
     return (
         <div className="pointer-events-auto w-full h-full md:h-[95%] custom-gradient backdrop-blur-xl rounded-t-[30px] md:rounded-[9px] shadow-2xl flex flex-col overflow-hidden font-zen border-t md:border border-white/20 relative">
 
-            {/* Кнопки зума */}
             <div className="fixed top-20 right-4 z-50 md:absolute md:top-[-60px] md:right-0">
                 <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
             </div>
 
-            {/* --- ШАПКА: ТАБЫ + ВХОД --- */}
-            <div className="flex items-center justify-between px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
-
-                {/* Левая часть: Табы */}
-                <div className="flex items-end gap-6">
-                    <button
-                        onClick={() => { setTab('cover'); setNotebookOpen(false); }}
-                        className={`text-2xl md:text-3xl transition-all leading-none ${
-                            tab === 'cover' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'
-                        }`}
-                    >
-                        Обложка
-                    </button>
-                    <button
-                        onClick={() => { setTab('block'); setNotebookOpen(true); }}
-                        className={`text-2xl md:text-3xl transition-all leading-none ${
-                            tab === 'block' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'
-                        }`}
-                    >
-                        Блок
-                    </button>
-                </div>
-
-                {/* Правая часть: Кнопка профиля (Маленькая) */}
-                <button
-                    onClick={user ? logout : onAuth}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full border border-white/20 transition-all group"
-                    title={user ? "Выйти" : "Войти"}
-                >
-                    {/* Иконка человека */}
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-
-                    {/* Если юзер вошел - показываем инициал или имя, если нет - "Войти" */}
-                    <span className="text-xs font-bold text-white uppercase tracking-wider hidden md:block">
-                        {user ? (user.displayName?.split(' ')[0] || 'Выход') : 'Войти'}
-                    </span>
-                </button>
-
+            <div className="flex items-end gap-8 px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
+                <button onClick={() => { setTab('cover'); setNotebookOpen(false); }} className={`text-2xl md:text-3xl transition-all leading-none ${tab === 'cover' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'}`}>Обложка</button>
+                <button onClick={() => { setTab('block'); setNotebookOpen(true); }} className={`text-2xl md:text-3xl transition-all leading-none ${tab === 'block' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'}`}>Блок</button>
             </div>
 
-            {/* ВНУТРЕННИЙ КОНТЕЙНЕР */}
             <div className="flex-1 px-4 md:px-6 pt-4 overflow-y-auto custom-scrollbar flex flex-col gap-3 relative z-0">
-
                 {tab === 'cover' && (
                     <div className="animate-fade-in flex flex-col gap-3 pb-40">
-
                         <GlassDropdown label="Переплет" currentValue={bindingType === 'hard' ? 'Твердый' : 'Пружина'}>
                             <div className="flex flex-col gap-1">
-                                <button onClick={() => setBindingType('hard')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'hard' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}>
-                                    <span>Твердый переплет</span> {bindingType === 'hard' && <span>✓</span>}
-                                </button>
-                                <button onClick={() => setBindingType('spiral')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'spiral' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}>
-                                    <span>На пружине (Soft)</span> {bindingType === 'spiral' && <span>✓</span>}
-                                </button>
+                                <button onClick={() => setBindingType('hard')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'hard' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}><span>Твердый переплет</span> {bindingType === 'hard' && <span>✓</span>}</button>
+                                <button onClick={() => setBindingType('spiral')} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${bindingType === 'spiral' ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}><span>На пружине (Soft)</span> {bindingType === 'spiral' && <span>✓</span>}</button>
                             </div>
                         </GlassDropdown>
-
-                        {bindingType === 'spiral' && (
-                            <div className="glass-panel rounded-[11px] overflow-hidden animate-fade-in">
-                                <ColorGlassList currentColor={spiralColor} onSelect={(c) => setColor('spiral', c)} label="Цвет пружины"/>
-                            </div>
-                        )}
-
+                        {bindingType === 'spiral' && (<div className="glass-panel rounded-[11px] overflow-hidden animate-fade-in"><ColorGlassList currentColor={spiralColor} onSelect={(c) => setColor('spiral', c)} label="Цвет пружины"/></div>)}
                         <GlassDropdown label="Формат" currentValue={format}>
                             <div className="flex flex-col gap-1">
-                                {['A5', 'A6'].map(f => (
-                                    <button key={f} onClick={() => setFormat(f)} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${format === f ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}>
-                                        <span>{f}</span> {format === f && <span>✓</span>}
-                                    </button>
-                                ))}
+                                {['A5', 'A6'].map(f => (<button key={f} onClick={() => setFormat(f)} className={`py-3 px-4 text-left rounded-[6px] transition-colors flex justify-between items-center ${format === f ? 'bg-white/20 font-bold' : 'hover:bg-white/10'}`}><span>{f}</span> {format === f && <span>✓</span>}</button>))}
                             </div>
                         </GlassDropdown>
-
                         <div className="glass-panel rounded-[11px] overflow-hidden transition-all">
                             <div className="p-5 flex items-center justify-between cursor-pointer" onClick={() => setHasElastic(!hasElastic)}>
                                 <span className="text-xl font-bold tracking-wide">Резинка</span>
-                                <div className={`w-12 h-7 rounded-full p-1 transition-colors border border-white/30 ${hasElastic ? 'bg-green-500/80' : 'bg-gray-500/50'}`}>
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${hasElastic ? 'translate-x-5' : ''}`} />
-                                </div>
+                                <div className={`w-12 h-7 rounded-full p-1 transition-colors border border-white/30 ${hasElastic ? 'bg-green-500/80' : 'bg-gray-500/50'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${hasElastic ? 'translate-x-5' : ''}`} /></div>
                             </div>
                             {hasElastic && (<div className="border-t border-white/10"><ColorGlassList currentColor={elasticColor} onSelect={(c) => setColor('elastic', c)} label="Цвет резинки" /></div>)}
                         </div>
-
                         <div className="glass-panel rounded-[11px] overflow-hidden"><ColorGlassList currentColor={coverColor} onSelect={(c) => setColor('cover', c)} label="Цвет обложки"/></div>
-
                         <div className="glass-panel rounded-[11px] p-5">
                             <h3 className="text-xl font-bold tracking-wide mb-4">Тиснение</h3>
                             <label className="block w-full py-3 bg-white/10 rounded-[6px] text-center cursor-pointer border border-white/20 text-sm font-bold mb-5">ЗАГРУЗИТЬ ЛОГОТИП<input type="file" onChange={(e) => setLogo(e.target.files[0])} className="hidden"/></label>
@@ -152,9 +115,10 @@ export const Interface = ({ onFinish, onAuth, user, logout }) => {
                 )}
             </div>
 
+            {/* БОЕВАЯ КНОПКА ЗАКАЗА */}
             <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#A4B0C9]/95 backdrop-blur-xl">
                 <button
-                    onClick={onFinish}
+                    onClick={handleAddToCart} // Вызываем новую функцию
                     className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-xl font-black tracking-[0.2em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
                 >
                     В Корзину

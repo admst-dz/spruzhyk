@@ -52,3 +52,44 @@ export const checkUserExists = async (uid) => {
     if (userSnap.exists()) return { exists: true, role: 'client', data: userSnap.data() };
     return { exists: false };
 };
+
+export const createOrderInDB = async (orderData) => {
+    const docRef = await addDoc(collection(db, "Orders"), {
+        ...orderData,
+        status: 'new',
+        createdAt: serverTimestamp(),
+    });
+    return docRef.id;
+};
+
+// 2. Списание токенов у пользователя (ПЛ/КЛ)
+export const deductUserTokens = async (uid, amountToDeduct) => {
+    const userRef = doc(db, "Users", uid);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+        const currentTokens = userSnap.data().tokenBalance || 0;
+        if (currentTokens >= amountToDeduct) {
+            await updateDoc(userRef, { tokenBalance: currentTokens - amountToDeduct });
+            return true; // Успех
+        }
+    }
+    return false; // Недостаточно средств
+};
+
+// 3. Загрузка заказов клиента
+export const fetchUserOrders = async (uid) => {
+    const q = query(collection(db, "Orders"), where("userId", "==", uid));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
+};
+
+// 4. Загрузка всех заказов (Для Дилера)
+export const fetchAllOrders = async () => {
+    const snap = await getDocs(collection(db, "Orders"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
+};
+
+// 5. Дилер: Обновление статуса заказа
+export const updateOrderStatus = async (orderId, newStatus) => {
+    await updateDoc(doc(db, "Orders", orderId), { status: newStatus, updatedAt: serverTimestamp() });
+};

@@ -5,6 +5,7 @@ import { useConfigurator } from '../store'
 import { useEffect, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber' // Импортируем хуки для доступа к камере
 import { easing } from 'maath'
+import { Sketchbook } from './Sketchbook'
 
 // --- НОВЫЙ КОМПОНЕНТ: УПРАВЛЕНИЕ КАМЕРОЙ ---
 // Он берет управление зумом на себя и делает это плавно
@@ -66,6 +67,7 @@ export const Experience = () => {
                 <Stage environment={null} intensity={0} contactShadow={false}>
                     {activeProduct === 'notebook' && <Notebook />}
                     {activeProduct === 'calendar' && <Calendar />}
+                    {activeProduct === 'sketchbook' && <Sketchbook />}
                 </Stage>
             </PresentationControls>
         </>

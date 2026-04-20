@@ -1,106 +1,160 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useConfigurator } from '../store';
+import { t } from '../i18n';
 
-// Принимаем пропсы для авторизации
 export const Home = ({ onStart, onAuth, user, logout }) => {
-    const { setProduct } = useConfigurator();
+    const {
+        setProduct, setFormat, setBindingType, setHasElastic, setIsSketchbook, // Достали функцию
+        language, setLanguage, theme, toggleTheme
+    } = useConfigurator();
 
-    const handleSelect = (productType) => {
+    useEffect(() => {
+        if (theme === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+    }, [theme]);
+
+    // ОБНОВЛЕННАЯ ФУНКЦИЯ
+    const handleSelect = (productType, config = {}) => {
         setProduct(productType);
+
+        // Сброс и применение настроек
+        setFormat(config.format || 'A5');
+        setBindingType(config.bindingType || 'hard');
+        setHasElastic(config.hasElastic !== undefined ? config.hasElastic : true);
+        setIsSketchbook(config.isSketchbook || false); // Устанавливаем флаг
+
         onStart();
     };
 
+    const cycleLanguage = () => {
+        if (language === 'ru') setLanguage('en');
+        else if (language === 'en') setLanguage('by');
+        else setLanguage('ru');
+    };
+
     return (
-        // Добавил relative для позиционирования кнопки
-        <div className="relative min-h-screen w-full flex flex-col items-center py-10 font-zen bg-gradient-to-br from-[#EAF4FF] via-[#DEECFF] to-[#CDE2FF]">
+        <div className="min-h-screen w-full flex flex-col font-sans transition-colors duration-500 bg-gray-50 text-gray-900 dark:bg-[#0B0F19] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#1A2642] dark:via-[#0B0F19] dark:to-[#080B13] dark:text-white overflow-x-hidden selection:bg-blue-500/30">
 
-            {/* === КНОПКА ВОЙТИ / ПРОФИЛЬ (В ПРАВОМ ВЕРХНЕМ УГЛУ) === */}
-            <div className="absolute top-6 right-6 z-50">
-                {user ? (
-                    <div className="flex items-center gap-4 bg-white/80 backdrop-blur rounded-full px-5 py-2.5 shadow-sm border border-blue-100 animate-fade-in">
-                        <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold text-black uppercase tracking-wider">
-                          {user.displayName || user.email.split('@')[0]}
-                      </span>
-                        </div>
-                        <div className="w-px h-6 bg-gray-300"></div>
-                        <button
-                            onClick={logout}
-                            className="text-xs text-red-500 font-bold hover:text-red-700 transition"
-                        >
-                            Выйти
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={onAuth}
-                        className="px-8 py-3 bg-white text-blue-600 border border-blue-200 rounded-full font-bold text-sm hover:bg-blue-50 hover:shadow-md transition shadow-sm font-zen flex items-center gap-2"
-                    >
-                        {/* Иконка юзера */}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Войти
+            {/* ... ШАПКА ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ... */}
+            <header className="w-full px-6 py-5 flex items-center justify-between z-50">
+                <div className="flex items-center gap-3 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-sm dark:shadow-none transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
+                </div>
+
+                <div className="hidden md:flex items-center gap-3 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-2 rounded-full backdrop-blur-md w-96 max-w-full text-sm text-gray-400 shadow-sm dark:shadow-none transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span className="flex-1">{t(language, 'search')}</span>
+                    <span className="bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest">⌘K</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button onClick={cycleLanguage} className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 text-gray-600 dark:bg-white/5 dark:border-white/10 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-full backdrop-blur-md text-xs font-bold uppercase">
+                        {language}
                     </button>
-                )}
-            </div>
+                    <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 text-gray-600 dark:bg-white/5 dark:border-white/10 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-full backdrop-blur-md">
+                        {theme === 'light' ? (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>) : (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>)}
+                    </button>
+                    {user ? (
+                        <div className="flex items-center gap-3 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-sm dark:shadow-none transition-colors">
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">{user.displayName || user.email.split('@')[0]}</span>
+                            <div className="w-px h-4 bg-gray-300 dark:bg-white/20"></div>
+                            <button onClick={logout} className="text-xs text-red-500 dark:text-red-400 font-bold hover:text-red-700 dark:hover:text-red-300 transition">{t(language, 'logout')}</button>
+                        </div>
+                    ) : (
+                        <button onClick={onAuth} className="flex items-center gap-2 bg-white border border-gray-200 text-gray-800 dark:bg-white/5 dark:border-white/10 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors px-5 py-2 rounded-full backdrop-blur-md text-sm font-bold shadow-sm dark:shadow-none">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            {t(language, 'login')}
+                        </button>
+                    )}
+                </div>
+            </header>
 
-
-            {/* Заголовок */}
-            <div className="mt-10 mb-20 text-center">
-                <h1 className="text-5xl md:text-6xl text-[#1a1a1a] font-normal tracking-wide relative inline-block pb-2">
-                    Конструктор
-                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-black rounded-full"></span>
+            <main className="flex-1 flex flex-col items-center justify-center pt-10 pb-20 px-4 z-10">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md mb-8 shadow-sm dark:shadow-none transition-colors">
+                    <div className="w-2 h-2 bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300 tracking-widest uppercase">{t(language, 'constructor')} • v2.6</span>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold text-center leading-tight tracking-tight mb-6 text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-white dark:to-gray-400 drop-shadow-sm dark:drop-shadow-2xl transition-colors">
+                    {t(language, 'title1')}<br/>{t(language, 'title2')}
                 </h1>
-            </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base text-center max-w-lg mb-16 font-medium leading-relaxed transition-colors">
+                    {t(language, 'subtitle')}
+                </p>
 
-            {/* Сетка выбора */}
-            <div className="flex flex-col md:flex-row gap-16 md:gap-32 items-center justify-center w-full max-w-6xl px-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
 
-                {/* === БЛОК 1: ЕЖЕДНЕВНИК === */}
-                <div
-                    onClick={() => handleSelect('notebook')}
-                    className="flex flex-col items-center gap-6 cursor-pointer group w-80"
-                >
-                    <div className="w-full text-center">
-                        <h2 className="text-3xl text-gray-600 mb-2 group-hover:text-black transition-colors font-light">Ежедневник</h2>
-                        <div className="w-full h-[1px] bg-gray-400 group-hover:bg-black transition-colors"></div>
+                    {/* Карточка 1: Ежедневник */}
+                    {/* Явно указываем isSketchbook: false */}
+                    <div onClick={() => handleSelect('notebook', { format: 'A5', bindingType: 'hard', hasElastic: true, isSketchbook: false })} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-[60px] group-hover:bg-blue-500/20 dark:group-hover:bg-blue-400/30 transition-colors duration-500"></div>
+                        <div className="h-64 w-full flex items-center justify-center relative z-10">
+                            <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                                <rect x="20" y="10" width="60" height="110" rx="3" fill="#151515" stroke="#333" strokeWidth="1"/>
+                                <path d="M76 12 V118 L82 116 V14 Z" fill="#D4AF37" />
+                                <rect x="20" y="10" width="8" height="110" fill="black" fillOpacity="0.4" />
+                            </svg>
+                        </div>
+                        <div className="text-center relative z-10 mt-2">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'notebook')}</h3>
+                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'notebookDesc')}</p>
+                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
+                                {t(language, 'openBtn')}
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="w-full aspect-square bg-[#F4F7FB] rounded-[40px] shadow-lg flex items-center justify-center border border-white transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-2xl overflow-hidden">
-                        <img
-                            src="/patterns/Notebook.svg"
-                            alt="Ежедневник"
-                            className="w-[70%] h-[70%] object-contain drop-shadow-xl transition-transform duration-500 group-hover:scale-105"
-                        />
+                    {/* Карточка 2: Календарь */}
+                    <div onClick={() => handleSelect('calendar')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-[60px] group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-400/30 transition-colors duration-500"></div>
+                        <div className="h-64 w-full flex items-center justify-center relative z-10">
+                            <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                                <rect x="20" y="20" width="60" height="90" rx="3" fill="#1E3A8A" stroke="#3b82f6" strokeWidth="1" strokeOpacity="0.3"/>
+                                <path d="M76 22 V108 L82 106 V24 Z" fill="#E5E7EB" />
+                                <rect x="20" y="20" width="8" height="90" fill="black" fillOpacity="0.4" />
+                            </svg>
+                        </div>
+                        <div className="text-center relative z-10 mt-2">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'calendar')}</h3>
+                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'calendarDesc')}</p>
+                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
+                                {t(language, 'openBtn')}
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Карточка 3: Блокнот */}
+                    {/* ВАЖНО: Указываем bindingType: 'spiral' и isSketchbook: true */}
+                    <div onClick={() => handleSelect('sketchbook')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-teal-500/10 dark:bg-teal-500/20 blur-[60px] group-hover:bg-teal-500/20 dark:group-hover:bg-teal-400/30 transition-colors duration-500"></div>
+                        <div className="h-64 w-full flex items-center justify-center relative z-10">
+                            <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                                <rect x="25" y="15" width="55" height="95" rx="6" fill="#2E3C45" stroke="#4B606B" strokeWidth="1" />
+                                <path d="M78 18 V107 L82 105 V20 Z" fill="#D1D5DB" />
+                                <g fill="#9CA3AF" className="drop-shadow-sm">
+                                    {[15, 25, 35, 45, 55, 65, 75, 85, 95, 105].map((y) => (
+                                        <rect key={y} x="20" y={y} width="10" height="3" rx="1.5" />
+                                    ))}
+                                </g>
+                            </svg>
+                        </div>
+                        <div className="text-center relative z-10 mt-2">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'sketchbook')}</h3>
+                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'sketchbookDesc')}</p>
+                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-teal-50 group-hover:text-teal-600 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
+                                {t(language, 'openBtn')}
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
+            </main>
 
-                {/* === БЛОК 2: КАЛЕНДАРЬ === */}
-                <div
-                    onClick={() => handleSelect('calendar')}
-                    className="flex flex-col items-center gap-6 cursor-pointer group w-80"
-                >
-                    <div className="w-full text-center">
-                        <h2 className="text-3xl text-gray-600 mb-2 group-hover:text-black transition-colors font-light">Календарь</h2>
-                        <div className="w-full h-[1px] bg-gray-400 group-hover:bg-black transition-colors"></div>
-                    </div>
-
-                    <div className="w-full aspect-square bg-[#F4F7FB] rounded-[40px] shadow-lg flex items-center justify-center border border-white transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-2xl overflow-hidden">
-                        <img
-                            src="/patterns/Calendar.svg"
-                            alt="Календарь"
-                            className="w-[70%] h-[70%] object-contain drop-shadow-xl transition-transform duration-500 group-hover:scale-105"
-                        />
-                    </div>
-                </div>
-
-            </div>
-
-            <div className="mt-auto mb-6 text-gray-500 font-light text-lg tracking-wider">
-                By Spoogeek
-            </div>
+            <footer className="w-full text-center pb-6 z-10 relative">
+        <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-400 dark:text-gray-600 transition-colors">
+            By Spoogeek • Liquid Glass Edition
+        </span>
+            </footer>
         </div>
     );
 };

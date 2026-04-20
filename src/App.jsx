@@ -10,6 +10,8 @@ import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬ
 import { useConfigurator } from './store'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, getUserRole } from './firebase'
+import { Sketchbook } from './components/Sketchbook'
+import { SketchbookInterface } from './components/SketchbookInterface'
 
 function App() {
     const [screen, setScreen] = useState('home');
@@ -146,6 +148,30 @@ function App() {
                         </>
                     )}
 
+                </div>
+            )}
+
+            {/* --- ЭКРАН: КОНСТРУКТОР БЛОКНОТА --- */}
+            {screen === 'sketchbook_configurator' && (
+                <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] overflow-hidden font-sans flex flex-col md:block">
+                    <button onClick={() => setScreen('home')} className="absolute top-6 left-6 z-50 px-6 py-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-sm font-bold text-black hover:bg-white font-zen active:scale-95 transition-all border border-black/10">
+                        ← В Меню
+                    </button>
+                    <>
+                        <div className="relative w-full h-[45%] md:absolute md:inset-0 md:w-[75%] md:h-full bg-[#dcdcdc] md:bg-transparent">
+                            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4.5], fov: 45 }} gl={{ antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true }}>
+                                {/* Освещение и контролы */}
+                                <ambientLight intensity={0.6} />
+                                <directionalLight position={[10, 10, 5]} intensity={1.5} />
+                                <directionalLight position={[-10, 5, 2]} intensity={0.5} />
+                                <Experience /> {/* В Experience.jsx нужно добавить логику для Sketchbook */}
+                            </Canvas>
+                        </div>
+                        <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
+                            {/* НОВЫЙ ИНТЕРФЕЙС БЛОКНОТА */}
+                            <SketchbookInterface onFinish={() => setScreen(currentUser ? 'client_dashboard' : 'order')} />
+                        </div>
+                    </>
                 </div>
             )}
         </>

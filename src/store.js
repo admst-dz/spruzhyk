@@ -1,43 +1,50 @@
 import { create } from 'zustand'
 
 export const useConfigurator = create((set) => ({
-    activeProduct: 'notebook',
+    activeProduct: 'notebook', // 'notebook' | 'calendar' | 'sketchbook'
 
     // --- Параметры 3D модели ---
     bindingType: 'hard',
     format: 'A5',
     isNotebookOpen: false,
     paperPattern: 'blank',
-    coverColor: '#1a1a1a',
+    coverColor: '#D2B48C', // Крафтовый по умолчанию для скетчбука
     hasElastic: true,
     elasticColor: '#1a1a1a',
-    spiralColor: '#Silver',
+    spiralColor: '#1a1a1a', // Черная пружина по умолчанию для скетчбука
     logoTexture: null,
     logoPosition: [0, 0],
     zoomLevel: 1,
 
-    // --- AUTH STATE ---
+    // --- AUTH И РОЛИ ---
     currentUser: null,
-    userRole: null, // 'client' | 'dealer'
-
-    // --- НОВЫЕ ПАРАМЕТРЫ ДЛЯ CLIENT DASHBOARD ---
-    // Роль внутри компании: 'PL' (сотрудник), 'PKL' (физлицо), 'KL' / 'KPR' / 'PR' (компания)
+    userRole: null,
     clientSubRole: 'PL',
-    tokenBalance: 500, // Баланс токенов для ПЛ/КЛ
-
     authLoading: true,
 
-    // --- AUTH ACTIONS ---
+    language: 'ru',
+    theme: 'dark',
+
+    cartItem: null,
+
+    // --- ACTIONS ---
     setCurrentUser: (user) => set({ currentUser: user }),
     setUserRole: (role) => set({ userRole: role }),
+    setClientSubRole: (subRole) => set({ clientSubRole: subRole }),
     setAuthLoading: (isLoading) => set({ authLoading: isLoading }),
     logout: () => set({ currentUser: null, userRole: null }),
 
-    // --- НОВЫЕ ACTIONS ДЛЯ КЛИЕНТОВ ---
-    setClientSubRole: (subRole) => set({ clientSubRole: subRole }),
-    spendTokens: (amount) => set((state) => ({ tokenBalance: Math.max(0, state.tokenBalance - amount) })),
+    setLanguage: (lang) => set({ language: lang }),
+    toggleTheme: () => set((state) => {
+        const newTheme = state.theme === 'light' ? 'dark' : 'light';
+        if (newTheme === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+        return { theme: newTheme };
+    }),
 
-    // --- ACTIONS 3D ---
+    addToCart: (itemData) => set({ cartItem: itemData }),
+    clearCart: () => set({ cartItem: null }),
+
     setProduct: (type) => set({ activeProduct: type }),
     setBindingType: (type) => set({ bindingType: type }),
     setFormat: (fmt) => set({ format: fmt }),
