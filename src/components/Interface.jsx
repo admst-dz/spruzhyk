@@ -109,7 +109,7 @@ export const Interface = ({ onFinish }) => {
             </div>
 
             {/* БОЕВАЯ КНОПКА ЗАКАЗА */}
-            <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#A4B0C9]/95 backdrop-blur-xl">
+            <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#A4B0C9]/95 dark:bg-[#060911]/95 backdrop-blur-xl">
                 <button
                     onClick={handleAddToCart} // Вызываем новую функцию
                     className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-xl font-black tracking-[0.2em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"

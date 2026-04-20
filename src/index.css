@@ -11,6 +11,10 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   background-color: #E5E5E5;
+  transition: background-color 0.4s ease;
+}
+html.dark, html.dark body, html.dark #root {
+  background-color: #0B0F19;
 }
 
 /* === ВАШИ НОВЫЕ СТИЛИ === */
@@ -25,14 +29,22 @@ html, body, #root {
   text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
 }
 
-/* 2. Фон Градиент (85% opacity) */
+/* 2. Фон Градиент */
 .custom-gradient {
-  background: linear-gradient(180deg, rgba(189, 195, 206, 0.85) 0%, rgba(164, 176, 201, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(189, 195, 206, 0.88) 0%, rgba(164, 176, 201, 0.88) 100%);
+}
+.dark .custom-gradient {
+  background: linear-gradient(180deg, rgba(15, 23, 48, 0.92) 0%, rgba(8, 11, 22, 0.96) 100%);
 }
 
-/* 3. Подложка (Белый 11%) */
+/* 3. Подложка (glass) */
 .glass-panel {
   background-color: rgba(255, 255, 255, 0.11);
-  backdrop-filter: blur(5px); /* Легкий блюр внутри плашек для читаемости */
-  border: 1px solid rgba(255, 255, 255, 0.2); /* Тонкая обводка для стекла */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.dark .glass-panel {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
