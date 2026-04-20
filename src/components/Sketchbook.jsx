@@ -155,7 +155,7 @@ export function Sketchbook(props) {
                     >
                         <torusGeometry args={[spiralRingRadius, 0.015, 12, 32]} />
                         <meshStandardMaterial
-                            ref={spiralMatRef}
+                            ref={spiralMat}
                             color={spiralColor === '#Silver' ? '#CCCCCC' : spiralColor}
                             metalness={0.4}
                             roughness={0.5}
