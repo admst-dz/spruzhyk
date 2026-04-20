@@ -5,6 +5,8 @@ import { useConfigurator } from '../store'
 import { Decal, useTexture, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
+const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
 // --- 1. МОДЕЛЬ НА ПРУЖИНЕ (GLB - БЕЗОПАСНАЯ ЗАГРУЗКА) ---
 function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...props }) {
     // Загрузка
@@ -33,7 +35,7 @@ function SpiralModel({ coverColor, spiralColor, logoTexture, logoPosition, ...pr
     const spiralGeo = getGeo(['Spiral', 'spiral', 'Circle', 'Spring']);
     const pagesGeo = getGeo(['Pages', 'pages', 'Paper', 'Block']);
 
-    const logoMap = useTexture(logoTexture || '/vite.svg')
+    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
     const coverMatRef = useRef()
     const spiralMatRef = useRef()
 
@@ -163,7 +165,7 @@ export function Notebook(props) {
     } = useConfigurator()
 
     const dims = format === 'A5' ? { w: 1.5, h: 2.1 } : { w: 1.05, h: 1.48 };
-    const logoMap = useTexture(logoTexture || '/vite.svg')
+    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     useGLTF.preload('/models/spiral.glb')
 

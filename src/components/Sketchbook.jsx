@@ -5,6 +5,8 @@ import { useConfigurator } from '../store'
 import { Decal, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
+const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
 // --- ГЕНЕРАТОР УЗОРОВ ---
 function createPatternTexture(type) {
     if (type === 'blank') return null;
@@ -59,7 +61,7 @@ export function Sketchbook(props) {
         return tex;
     }, [paperPattern, format]);
 
-    const logoMap = useTexture(logoTexture || '/vite.svg')
+    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     useFrame((state, delta) => {
         if(coverMat.current) easing.dampC(coverMat.current.color, coverColor, 0.25, delta)

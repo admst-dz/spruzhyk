@@ -4,6 +4,8 @@ import { easing } from 'maath'
 import { useConfigurator } from '../store'
 import { Decal, useTexture } from '@react-three/drei'
 
+const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
 export function Calendar(props) {
     const { coverColor, spiralColor, logoTexture } = useConfigurator()
 
@@ -15,7 +17,7 @@ export function Calendar(props) {
         if(spiralMat.current) easing.dampC(spiralMat.current.color, spiralColor, 0.25, delta)
     })
 
-    const logoMap = useTexture(logoTexture || '/vite.svg')
+    const logoMap = useTexture(logoTexture || TRANSPARENT_PIXEL)
 
     return (
         <group {...props} dispose={null} rotation={[0, -0.5, 0]}>
