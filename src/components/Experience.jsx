@@ -2,13 +2,36 @@ import { PresentationControls, Stage, Environment } from '@react-three/drei'
 import { Notebook } from './Notebook'
 import { Calendar } from './Calendar'
 import { useConfigurator } from '../store'
-import { useEffect, useState } from 'react'
-import { useThree, useFrame } from '@react-three/fiber' // Импортируем хуки для доступа к камере
+import { useEffect, useRef, useState } from 'react'
+import { useThree, useFrame } from '@react-three/fiber'
 import { easing } from 'maath'
 import { Sketchbook } from './Sketchbook'
 
-// --- НОВЫЙ КОМПОНЕНТ: УПРАВЛЕНИЕ КАМЕРОЙ ---
-// Он берет управление зумом на себя и делает это плавно
+function WheelZoom() {
+    const { gl } = useThree()
+    const { setZoom } = useConfigurator()
+    const zoomRef = useRef(1)
+
+    // Держим актуальный zoom в ref чтобы избежать stale closure
+    const { zoomLevel } = useConfigurator()
+    useEffect(() => { zoomRef.current = zoomLevel }, [zoomLevel])
+
+    useEffect(() => {
+        const canvas = gl.domElement
+        const handleWheel = (e) => {
+            e.preventDefault()
+            // ctrlKey=true — тачпад pinch (браузер маскирует под ctrl+wheel)
+            const sensitivity = e.ctrlKey ? 0.008 : 0.001
+            const next = Math.min(Math.max(zoomRef.current - e.deltaY * sensitivity, 0.5), 2.5)
+            setZoom(next)
+        }
+        canvas.addEventListener('wheel', handleWheel, { passive: false })
+        return () => canvas.removeEventListener('wheel', handleWheel)
+    }, [gl.domElement, setZoom])
+
+    return null
+}
+
 function CameraUpdater({ targetZoom }) {
     const { camera } = useThree()
 
@@ -48,8 +71,8 @@ export const Experience = () => {
 
     return (
         <>
-            {/* Вставляем наш компонент управления камерой */}
             <CameraUpdater targetZoom={finalZoom} />
+            <WheelZoom />
 
             <Environment preset="city" />
 
