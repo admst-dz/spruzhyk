@@ -22,7 +22,7 @@ export const Interface = ({ onFinish }) => {
         hasElastic, setHasElastic,
         setNotebookOpen,
         paperPattern, setPaperPattern,
-        logos, selectedLogoId, addLogo, selectLogo, setLogoPosition,
+        logos, selectedLogoId, addLogo, selectLogo, setLogoPosition, setLogoRotation, setLogoScale,
         activeProduct,
         zoomLevel, setZoom,
         addToCart,
@@ -92,7 +92,7 @@ export const Interface = ({ onFinish }) => {
                             {hasElastic && (<div className="border-t border-white/10"><ColorGlassList currentColor={elasticColor} onSelect={(c) => setColor('elastic', c)} label="Цвет резинки" /></div>)}
                         </div>
                         <div className="glass-panel rounded-[11px] overflow-hidden"><ColorGlassList currentColor={coverColor} onSelect={(c) => setColor('cover', c)} label="Цвет обложки"/></div>
-                        <LogoPanel logos={logos} selectedLogoId={selectedLogoId} addLogo={addLogo} selectLogo={selectLogo} setLogoPosition={setLogoPosition} />
+                        <LogoPanel logos={logos} selectedLogoId={selectedLogoId} addLogo={addLogo} selectLogo={selectLogo} setLogoPosition={setLogoPosition} setLogoRotation={setLogoRotation} setLogoScale={setLogoScale} />
                     </div>
                 )}
 
@@ -125,8 +125,16 @@ export const Interface = ({ onFinish }) => {
 }
 
 // --- ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ ---
-const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition }) => {
+const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition, setLogoRotation, setLogoScale }) => {
     const selected = logos.find(l => l.id === selectedLogoId) || null;
+
+    const updatePos = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        setLogoPosition((nx * 2 - 1) * 0.4, -(ny * 2 - 1) * 0.8);
+    };
+
     return (
         <div className="glass-panel rounded-[11px] p-5">
             <h3 className="text-xl font-bold tracking-wide mb-4">Тиснение</h3>
@@ -144,9 +152,52 @@ const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, setLogoPosition
                 </div>
             )}
             {selected && (
-                <div className="space-y-4">
-                    <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">X</span><input type="range" min="-0.4" max="0.4" step="0.01" value={selected.position[0]} onChange={(e) => setLogoPosition(parseFloat(e.target.value), selected.position[1])} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
-                    <div className="flex items-center gap-4"><span className="w-4 font-bold opacity-70">Y</span><input type="range" min="-0.8" max="0.8" step="0.01" value={selected.position[1]} onChange={(e) => setLogoPosition(selected.position[0], parseFloat(e.target.value))} className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/></div>
+                <div className="flex flex-col gap-4 mt-1">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest mb-1">Позиция</span>
+                        <div
+                            className="relative w-full aspect-square bg-white/8 rounded-[10px] border border-white/15 cursor-crosshair touch-none select-none overflow-hidden"
+                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updatePos(e); }}
+                            onPointerMove={(e) => { if (e.buttons) updatePos(e); }}
+                        >
+                            <div className="absolute inset-0 flex items-center pointer-events-none">
+                                <div className="w-full h-px bg-white/15" />
+                            </div>
+                            <div className="absolute inset-0 flex justify-center pointer-events-none">
+                                <div className="h-full w-px bg-white/15" />
+                            </div>
+                            <div
+                                className="absolute w-4 h-4 bg-white rounded-full shadow-lg border-2 border-white/80 pointer-events-none"
+                                style={{
+                                    left: `${(selected.position[0] / 0.4 + 1) / 2 * 100}%`,
+                                    top: `${(1 - (selected.position[1] / 0.8 + 1) / 2) * 100}%`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                            <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest">Поворот</span>
+                            <span className="text-xs font-bold opacity-80">{Math.round((selected.rotation ?? 0) * 180 / Math.PI)}°</span>
+                        </div>
+                        <input type="range" min="-180" max="180" step="1"
+                            value={Math.round((selected.rotation ?? 0) * 180 / Math.PI)}
+                            onChange={(e) => setLogoRotation(parseFloat(e.target.value) * Math.PI / 180)}
+                            className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                            <span className="text-[11px] opacity-50 font-bold uppercase tracking-widest">Размер</span>
+                            <span className="text-xs font-bold opacity-80">{Math.round((selected.scale ?? 0.6) * 100)}%</span>
+                        </div>
+                        <input type="range" min="0.2" max="1.5" step="0.05"
+                            value={selected.scale ?? 0.6}
+                            onChange={(e) => setLogoScale(parseFloat(e.target.value))}
+                            className="w-full h-1 bg-white/30 rounded-full appearance-none accent-white"/>
+                    </div>
                 </div>
             )}
         </div>

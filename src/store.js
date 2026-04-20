@@ -66,7 +66,7 @@ export const useConfigurator = create((set) => ({
             const reader = new FileReader();
             const id = Date.now();
             reader.onload = (e) => set((state) => ({
-                logos: [...state.logos, { id, texture: e.target.result, filename: file.name, position: [0, 0] }],
+                logos: [...state.logos, { id, texture: e.target.result, filename: file.name, position: [0, 0], rotation: 0, scale: 0.6 }],
                 selectedLogoId: id
             }));
             reader.readAsDataURL(file);
@@ -75,6 +75,12 @@ export const useConfigurator = create((set) => ({
     selectLogo: (id) => set({ selectedLogoId: id }),
     setLogoPosition: (x, y) => set((state) => ({
         logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, position: [x, y] } : l)
+    })),
+    setLogoRotation: (rotation) => set((state) => ({
+        logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, rotation } : l)
+    })),
+    setLogoScale: (scale) => set((state) => ({
+        logos: state.logos.map(l => l.id === state.selectedLogoId ? { ...l, scale } : l)
     })),
     setZoom: (val) => set({ zoomLevel: val }),
 }))

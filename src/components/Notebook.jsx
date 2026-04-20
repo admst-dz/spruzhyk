@@ -5,10 +5,10 @@ import { useConfigurator } from '../store'
 import { Decal, useTexture, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
-function LogoDecal({ texture, x, y, z }) {
+function LogoDecal({ texture, x, y, z, rotation = 0, scale = 0.6 }) {
     const map = useTexture(texture);
     return (
-        <Decal position={[x, y, z]} rotation={[0, 0, 0]} scale={[0.6, 0.6, 1]}>
+        <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]}>
             <meshPhysicalMaterial map={map} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
         </Decal>
     );
@@ -62,7 +62,7 @@ function SpiralModel({ coverColor, spiralColor, logos, ...props }) {
                     <meshStandardMaterial ref={coverMatRef} color={coverColor} roughness={0.4} />
 
                     {logos.map(logo => (
-                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={0.1} />
+                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={0.1} rotation={logo.rotation ?? 0} scale={logo.scale ?? 0.6} />
                     ))}
                 </mesh>
             )}
@@ -130,7 +130,7 @@ function HardCoverModel({ coverColor, dims, elasticColor, hasElastic, logos, isN
                     <boxGeometry args={[dims.w, dims.h, coverThick]} />
                     <meshStandardMaterial color={coverColor} roughness={0.4} />
                     {logos.map(logo => (
-                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={coverThick/2+0.001} />
+                        <LogoDecal key={logo.id} texture={logo.texture} x={logo.position[0]} y={logo.position[1]} z={coverThick/2+0.001} rotation={logo.rotation ?? 0} scale={logo.scale ?? 0.6} />
                     ))}
                 </mesh>
                 {hasElastic && (
