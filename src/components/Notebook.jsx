@@ -17,7 +17,7 @@ function LogoDecal({ texture, x, y, z, rotation = 0, scale = 0.6 }) {
 // --- 1. МОДЕЛЬ НА ПРУЖИНЕ (GLB - БЕЗОПАСНАЯ ЗАГРУЗКА) ---
 function SpiralModel({ coverColor, spiralColor, logos, ...props }) {
     // Загрузка
-    const { nodes } = useGLTF('/models/spiral.glb')
+const { nodes } = useGLTF('models/spiral.glb')
 
     // --- ДЕБАГ ИМЕН ---
     useEffect(() => {
@@ -164,7 +164,7 @@ export function Notebook(props) {
 
     const dims = format === 'A5' ? { w: 1.5, h: 2.1 } : { w: 1.05, h: 1.48 };
 
-    useGLTF.preload('/models/spiral.glb')
+    useGLTF.preload('models/spiral.glb')
 
     return (
         <group {...props} dispose={null}>
