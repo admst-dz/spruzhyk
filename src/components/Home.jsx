@@ -4,7 +4,7 @@ import { t } from '../i18n';
 
 export const Home = ({ onStart, onAuth, user, logout }) => {
     const {
-        setProduct, setFormat, setBindingType, setHasElastic, setIsSketchbook, // Достали функцию
+        setProduct, setFormat, setBindingType, setHasElastic,
         language, setLanguage, theme, toggleTheme
     } = useConfigurator();
 
@@ -21,7 +21,6 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
         setFormat(config.format || 'A5');
         setBindingType(config.bindingType || 'hard');
         setHasElastic(config.hasElastic !== undefined ? config.hasElastic : true);
-        setIsSketchbook(config.isSketchbook || false); // Устанавливаем флаг
 
         onStart();
     };
