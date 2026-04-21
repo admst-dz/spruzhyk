@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: public.ecr.aws/docker/library/postgres:15-alpine
