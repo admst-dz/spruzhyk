@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, writeBatch } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, writeBatch } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAjNllw0Dm_wszZpHgqNhZZGs2eGhlgPM",
@@ -15,6 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Получение роли + subRole
@@ -62,7 +64,7 @@ export const createOrderInDB = async (orderData) => {
     return docRef.id;
 };
 
-// 2. Списание токенов у пользователя (ПЛ/КЛ)
+// Списание токенов у пользователя
 export const deductUserTokens = async (uid, amountToDeduct) => {
     const userRef = doc(db, "Users", uid);
     const userSnap = await getDoc(userRef);
@@ -70,13 +72,13 @@ export const deductUserTokens = async (uid, amountToDeduct) => {
         const currentTokens = userSnap.data().tokenBalance || 0;
         if (currentTokens >= amountToDeduct) {
             await updateDoc(userRef, { tokenBalance: currentTokens - amountToDeduct });
-            return true; // Успех
+            return true;
         }
     }
-    return false; // Недостаточно средств
+    return false;
 };
 
-// 3. Загрузка заказов клиента (включая гостевые по email)
+// Загрузка заказов клиента (включая гостевые по email)
 export const fetchUserOrders = async (uid, email) => {
     const toRow = d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' });
 
@@ -94,7 +96,7 @@ export const fetchUserOrders = async (uid, email) => {
     return [...authOrders, ...guestOrders.filter(o => !seen.has(o.id))];
 };
 
-// 3b. Привязать гостевые заказы к аккаунту после логина
+// Привязать гостевые заказы к аккаунту после логина
 export const claimGuestOrders = async (uid, email) => {
     if (!email) return;
     const q = query(collection(db, "Orders"), where("userEmail", "==", email), where("isGuest", "==", true));
@@ -105,13 +107,47 @@ export const claimGuestOrders = async (uid, email) => {
     await batch.commit();
 };
 
-// 4. Загрузка всех заказов (Для Дилера)
+// Загрузка всех заказов (для Дилера)
 export const fetchAllOrders = async () => {
     const snap = await getDocs(collection(db, "Orders"));
     return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
 };
 
-// 5. Дилер: Обновление статуса заказа
+// Дилер: Обновление статуса заказа
 export const updateOrderStatus = async (orderId, newStatus) => {
     await updateDoc(doc(db, "Orders", orderId), { status: newStatus, updatedAt: serverTimestamp() });
+};
+
+// ─── Products ────────────────────────────────────────────────────────────────
+
+export const fetchDealerProducts = async (dealerId) => {
+    const q = query(collection(db, "Products"), where("dealerId", "==", dealerId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const saveProduct = async (productData) => {
+    const docRef = await addDoc(collection(db, "Products"), {
+        ...productData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+};
+
+export const updateProduct = async (productId, data) => {
+    await updateDoc(doc(db, "Products", productId), {
+        ...data,
+        updatedAt: serverTimestamp(),
+    });
+};
+
+export const deleteProduct = async (productId) => {
+    await deleteDoc(doc(db, "Products", productId));
+};
+
+export const uploadProductImage = async (file, dealerId) => {
+    const storageRef = ref(storage, `products/${dealerId}/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
 };
