@@ -57,6 +57,10 @@ jobs:
             mkdir -p /opt/spruzhyk
             cp /tmp/spruzhyk/docker-compose.yml /opt/spruzhyk/docker-compose.yml
 
+            # Убиваем старые контейнеры занимающие порт 80
+            docker stop spruzhyk-app 2>/dev/null || true
+            docker rm spruzhyk-app 2>/dev/null || true
+
             cd /opt/spruzhyk
             docker compose down --remove-orphans || true
             docker compose up -d
