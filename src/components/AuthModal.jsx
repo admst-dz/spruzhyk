@@ -4,7 +4,8 @@ import {
     createUserWithEmailAndPassword,
     signInWithPopup
 } from 'firebase/auth';
-import { auth, googleProvider, createUserProfile, checkUserExists } from '../firebase';
+import { auth, googleProvider } from '../firebase';
+import { createUserProfile, checkUserExists } from '../api';
 
 export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [step, setStep] = useState(1); // 1: Login/Register, 2: Choose Role, 3: Choose SubRole

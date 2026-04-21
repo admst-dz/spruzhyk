@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
-import { db, fetchUserOrders, fetchAllProducts, auth } from '../firebase';
+import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
 
 const TabBtn = ({ active, children, onClick }) => (
     <button
@@ -91,31 +91,32 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
 
     const handleApprove = async () => {
         try {
-            const orderPayload = {
-                userId: currentUser ? currentUser.uid : 'guest',
-                userEmail: currentUser ? currentUser.email : 'user@mail.com',
-                role: clientSubRole || 'client',
-                product: cartItem.productName,
-                design: cartItem.design,
-                price: cartItem.priceBYN,
+            const id = await createOrderInDB({
+                user_id: currentUser?.uid || null,
+                user_email: currentUser?.email || '',
+                product_name: cartItem.productName,
+                configuration: {
+                    productConfig: cartItem,
+                    clientType: clientSubRole || 'client',
+                },
+                quantity: 1,
+                total_price: cartItem.priceBYN || null,
                 currency: 'BYN',
-                status: 'new',
-                createdAt: serverTimestamp(),
-            };
-
-            const docRef = await addDoc(collection(db, 'Orders'), orderPayload);
+                is_guest: false,
+            });
 
             const newOrder = {
-                id: docRef.id,
-                ...orderPayload,
-                createdAt: null,
-                date: new Date().toLocaleDateString(),
+                id,
+                product: cartItem.productName,
+                design: cartItem.design || '',
+                price: cartItem.priceBYN || 0,
+                status: 'new',
+                date: new Date().toLocaleDateString('ru-RU'),
             };
             setOrders(prev => [newOrder, ...prev]);
             setOrderSuccess(true);
             clearCart();
             setActiveTab('orders');
-
         } catch (error) {
             console.error(error);
         }

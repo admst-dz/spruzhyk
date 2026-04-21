@@ -12,7 +12,6 @@ on:
 
 jobs:
   deploy:
-    # Для PR — деплоить только если мерж (не просто закрытый PR)
     if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
@@ -20,21 +19,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Build frontend Docker image
         run: docker build -t spruzhyk-app:latest .
 
-      - name: Save Docker image to tar
-        run: docker save spruzhyk-app:latest | gzip > spruzhyk-app.tar.gz
+      - name: Build backend Docker image
+        run: docker build -t spruzhyk-backend:latest ./spruzhyk_backend
 
-      - name: Copy image to server via SCP
+      - name: Save Docker images to tar
+        run: |
+          docker save spruzhyk-app:latest | gzip > spruzhyk-app.tar.gz
+          docker save spruzhyk-backend:latest | gzip > spruzhyk-backend.tar.gz
+
+      - name: Copy images and compose to server via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
           username: ${{ secrets.PROD_SERVER_USER }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           port: 22
-          source: spruzhyk-app.tar.gz
-          target: /tmp/
+          source: "spruzhyk-app.tar.gz,spruzhyk-backend.tar.gz,docker-compose.yml"
+          target: /tmp/spruzhyk/
 
       - name: Deploy on server via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -47,26 +51,18 @@ jobs:
           script: |
             set -e
 
-            CONTAINER_NAME="spruzhyk-app"
-            IMAGE_NAME="spruzhyk-app"
+            docker load < /tmp/spruzhyk/spruzhyk-app.tar.gz
+            docker load < /tmp/spruzhyk/spruzhyk-backend.tar.gz
 
-            # Загружаем новый образ
-            docker load < /tmp/spruzhyk-app.tar.gz
+            mkdir -p /opt/spruzhyk
+            cp /tmp/spruzhyk/docker-compose.yml /opt/spruzhyk/docker-compose.yml
 
-            # Останавливаем и удаляем старый контейнер (если есть)
-            docker stop "$CONTAINER_NAME" 2>/dev/null || true
-            docker rm "$CONTAINER_NAME" 2>/dev/null || true
+            cd /opt/spruzhyk
+            docker compose down --remove-orphans || true
+            docker compose up -d
 
-            # Запускаем новый контейнер
-            docker run -d \
-              --name "$CONTAINER_NAME" \
-              --restart unless-stopped \
-              -p 80:80 \
-              "$IMAGE_NAME:latest"
-
-            # Чистим
-            rm -f /tmp/spruzhyk-app.tar.gz
+            rm -rf /tmp/spruzhyk
             docker image prune -f
 
-            echo "Deployment successful! Container status:"
-            docker ps | grep "$CONTAINER_NAME"
+            echo "Deployment successful!"
+            docker compose ps
