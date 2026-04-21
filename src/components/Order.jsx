@@ -7,7 +7,7 @@ import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
 
-export const Order = ({ onBack }) => {
+export const Order = ({ onBack, onSuccess }) => {
     const {
         format, coverColor, elasticColor, hasElastic,
         paperPattern, logos, bindingType, spiralColor,
@@ -18,7 +18,6 @@ export const Order = ({ onBack }) => {
     const [quantity, setQuantity] = useState(1);
     const [isSample, setIsSample] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '', phone: '', email: '', address: '', inn: '', contactPerson: '', comment: ''
@@ -62,7 +61,7 @@ export const Order = ({ onBack }) => {
         };
         try {
             await addDoc(collection(db, 'Orders'), orderPayload);
-            setSuccess(true);
+            onSuccess();
         } catch (error) {
             console.error("Order error:", error);
             alert("Ошибка сети. Попробуйте позже.");
@@ -73,18 +72,6 @@ export const Order = ({ onBack }) => {
 
     const patternNames = { blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' };
     const bindingNames = { hard: 'Твердый', spiral: 'На пружине' };
-
-    if (success) {
-        return (
-            <div className="w-full h-screen bg-[#E5E5E5] dark:bg-[#080B13] font-zen flex flex-col items-center justify-center text-center px-4 animate-fade-in z-[100] relative transition-colors duration-300">
-                <h1 className="text-4xl md:text-6xl font-black uppercase mb-6 text-white">Заказ принят!</h1>
-                <p className="text-white/50 font-bold mb-8">Менеджер свяжется с вами в ближайшее время.</p>
-                <button onClick={onBack} className="px-8 py-3 bg-white/10 dark:bg-white/5 text-white rounded-[12px] font-bold uppercase hover:bg-white/20 transition border border-white/20">
-                    В меню
-                </button>
-            </div>
-        );
-    }
 
     return (
         <div className="fixed inset-0 w-full h-full bg-[#E5E5E5] dark:bg-[#080B13] font-zen overflow-y-auto z-50 transition-colors duration-300">

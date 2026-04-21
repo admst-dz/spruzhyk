@@ -21,7 +21,7 @@ const OrderStatus = ({ status }) => {
     return <span className={`px-3 py-1.5 rounded-[8px] text-[10px] font-bold uppercase tracking-wider ${s.color}`}>{s.text}</span>;
 };
 
-export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
+export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, onSuccessToastShown }) => {
     const { currentUser, logout, clientSubRole, cartItem, clearCart, addToCart } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'catalog');
 
@@ -29,6 +29,21 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
+
+    useEffect(() => {
+        if (showSuccessToast) {
+            setActiveTab('orders');
+            setOrderSuccess(true);
+            onSuccessToastShown?.();
+        }
+    }, [showSuccessToast]);
+
+    useEffect(() => {
+        if (orderSuccess) {
+            const t = setTimeout(() => setOrderSuccess(false), 4000);
+            return () => clearTimeout(t);
+        }
+    }, [orderSuccess]);
 
     useEffect(() => {
         if (activeTab === 'orders' && currentUser) {
@@ -160,12 +175,6 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
 
                 {activeTab === 'orders' && (
                     <div className="animate-fade-in">
-                        {orderSuccess && (
-                            <div className="mb-6 bg-green-50 border border-green-200 rounded-[16px] px-6 py-4 flex items-center justify-between">
-                                <span className="text-green-700 font-bold text-sm">✅ Заказ успешно оформлен! Менеджер свяжется с вами.</span>
-                                <button onClick={() => setOrderSuccess(false)} className="text-green-500 hover:text-green-700 text-xs font-bold uppercase tracking-widest ml-4">✕</button>
-                            </div>
-                        )}
                         <h2 className="text-2xl font-black uppercase mb-6">Мои заказы</h2>
                         <div className="bg-white rounded-[20px] shadow-sm border border-gray-200 overflow-hidden">
                             {ordersLoading ? (
@@ -185,6 +194,15 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
                     </div>
                 )}
             </main>
+        {orderSuccess && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                <div className="bg-white rounded-[24px] px-10 py-8 shadow-2xl text-center pointer-events-auto animate-fade-in border border-gray-100">
+                    <div className="text-4xl mb-4">✅</div>
+                    <p className="font-black text-xl text-[#1a1a1a] uppercase tracking-wide">Заказ оформлен!</p>
+                    <p className="text-sm text-gray-400 font-bold mt-2">Менеджер свяжется с вами в ближайшее время</p>
+                </div>
+            </div>
+        )}
         </div>
     )
 }

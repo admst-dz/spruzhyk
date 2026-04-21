@@ -16,6 +16,7 @@ import { SketchbookInterface } from './components/SketchbookInterface'
 function App() {
     const [screen, setScreen] = useState('home');
     const [showAuth, setShowAuth] = useState(false);
+    const [pendingSuccessToast, setPendingSuccessToast] = useState(false);
 
     const {
         activeProduct,
@@ -83,7 +84,13 @@ function App() {
             {/* --- ЭКРАН: КОРЗИНА ГОСТЯ --- */}
             {/* Доступно только для незарегистрированных пользователей */}
             {screen === 'order' && (
-                <Order onBack={() => setScreen('configurator')} />
+                <Order
+                    onBack={() => setScreen('configurator')}
+                    onSuccess={() => {
+                        setPendingSuccessToast(true);
+                        setShowAuth(true);
+                    }}
+                />
             )}
 
 
@@ -98,6 +105,8 @@ function App() {
                 <ClientDashboard
                     onOpenConfigurator={() => setScreen('configurator')}
                     onBack={() => setScreen('home')}
+                    showSuccessToast={pendingSuccessToast}
+                    onSuccessToastShown={() => setPendingSuccessToast(false)}
                 />
             )}
 
