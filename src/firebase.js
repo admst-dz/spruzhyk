@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -20,18 +20,18 @@ export const googleProvider = new GoogleAuthProvider();
 // Получение роли + subRole
 export const getUserRole = async (uid) => {
     if (!uid) return { role: null, subRole: null };
-    const dealerSnap = await getDoc(doc(db, "Dealers", uid));
-    if (dealerSnap.exists()) return { role: 'dealer', subRole: null };
     const userSnap = await getDoc(doc(db, "Users", uid));
-    if (userSnap.exists()) return { role: 'client', subRole: userSnap.data().subRole || 'PL' };
+    if (userSnap.exists()) {
+        const data = userSnap.data();
+        return { role: data.role || 'client', subRole: data.subRole || null };
+    }
     return { role: null, subRole: null };
 };
 
-// Создание профиля (subRole только для клиентов)
+// Создание профиля (все пользователи в Users)
 export const createUserProfile = async (user, role, subRole = null) => {
     if (!user) return;
-    const collectionName = role === 'dealer' ? "Dealers" : "Users";
-    const userRef = doc(db, collectionName, user.uid);
+    const userRef = doc(db, "Users", user.uid);
     const data = {
         uid: user.uid,
         email: user.email,
@@ -48,10 +48,8 @@ export const createUserProfile = async (user, role, subRole = null) => {
 
 // Проверка юзера
 export const checkUserExists = async (uid) => {
-    const dealerSnap = await getDoc(doc(db, "Dealers", uid));
-    if (dealerSnap.exists()) return { exists: true, role: 'dealer', data: dealerSnap.data() };
     const userSnap = await getDoc(doc(db, "Users", uid));
-    if (userSnap.exists()) return { exists: true, role: 'client', data: userSnap.data() };
+    if (userSnap.exists()) return { exists: true, role: userSnap.data().role || 'client', data: userSnap.data() };
     return { exists: false };
 };
 
