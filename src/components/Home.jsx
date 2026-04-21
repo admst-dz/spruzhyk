@@ -32,7 +32,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
     };
 
     return (
-        <div className="min-h-screen w-full flex flex-col font-sans transition-colors duration-500 bg-gray-50 text-gray-900 dark:bg-[#0B0F19] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#1A2642] dark:via-[#0B0F19] dark:to-[#080B13] dark:text-white overflow-x-hidden selection:bg-blue-500/30">
+        <div className="min-h-screen w-full flex flex-col font-sans transition-colors duration-500 bg-gray-50 text-gray-900 dark:bg-[#0B0F19] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#1A2642] dark:via-[#0B0F19] dark:to-[#080B13] dark:text-white overflow-x-hidden selection:bg-blue-500/30 md:h-screen">
 
             {/* ... ШАПКА ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ... */}
             <header className="w-full px-6 py-5 flex items-center justify-between z-50">
@@ -69,7 +69,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col items-center justify-center pt-10 pb-20 px-4 z-10">
+            <main className="md:flex-1 flex flex-col items-center justify-center pt-10 pb-20 px-4 z-10">
                 <div className="flex items-center gap-2 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md mb-8 shadow-sm dark:shadow-none transition-colors">
                     <div className="w-2 h-2 bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
                     <span className="text-xs font-bold text-gray-600 dark:text-gray-300 tracking-widest uppercase">{t(language, 'constructor')} • v2.6</span>
