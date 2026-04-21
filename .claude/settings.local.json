@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(sshpass -p 'tnM#C.1TSp?Wp6' ssh -o StrictHostKeyChecking=no root@217.25.93.108 'docker ps -a')"
-    ]
-  }
-}
