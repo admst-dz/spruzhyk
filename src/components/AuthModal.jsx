@@ -2,7 +2,8 @@ import { useState } from 'react';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    signInWithPopup
+    signInWithPopup,
+    signOut
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { createUserProfile, checkUserExists } from '../api';
@@ -16,15 +17,25 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [loading, setLoading] = useState(false);
     const [tempUser, setTempUser] = useState(null);
 
-    const handleAuthSuccess = async (user) => {
-        const { exists, role, data } = await checkUserExists(user.uid);
-        if (exists) {
-            onRoleCreated?.(role || 'client', data?.subRole || null);
-            onClose();
-        } else {
-            setTempUser(user);
+    const handleAuthSuccess = async (user, allowRoleSelection = false) => {
+        try {
+            const { exists, role, data } = await checkUserExists(user.uid);
+            if (exists) {
+                onRoleCreated?.(role || 'client', data?.subRole || null);
+                onClose();
+            } else if (isRegistering || allowRoleSelection) {
+                setTempUser(user);
+                setLoading(false);
+                setStep(2);
+            } else {
+                // Вход, но профиля в БД нет — выходим из Firebase и показываем ошибку
+                await signOut(auth);
+                setError('Аккаунт не найден. Пожалуйста, зарегистрируйтесь.');
+                setLoading(false);
+            }
+        } catch {
+            setError('Ошибка при проверке аккаунта. Попробуйте снова.');
             setLoading(false);
-            setStep(2);
         }
     };
 
@@ -54,9 +65,11 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         setLoading(true);
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            await handleAuthSuccess(result.user);
+            await handleAuthSuccess(result.user, true);
         } catch (err) {
-            setError(err.message);
+            if (err.code !== 'auth/popup-closed-by-user') {
+                setError('Ошибка входа через Google. Попробуйте снова.');
+            }
             setLoading(false);
         }
     };

@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = '/api/v1';
 
 const req = async (method, path, body) => {
     const res = await fetch(`${BASE}${path}`, {
@@ -7,9 +7,10 @@ const req = async (method, path, body) => {
         body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 204) return null;
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'API error');
-    return data;
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || json.error || 'API error');
+    // Разворачиваем ResponseModel { status, data } → возвращаем data напрямую
+    return json.data !== undefined ? json.data : json;
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ const req = async (method, path, body) => {
 export const getUserRole = async (uid) => {
     try {
         const user = await req('GET', `/users/${uid}`);
-        return { role: user.role || 'client', subRole: user.sub_role || null };
+        return { role: user.role || null, subRole: user.sub_role || null };
     } catch {
         return { role: null, subRole: null };
     }
@@ -26,7 +27,7 @@ export const getUserRole = async (uid) => {
 export const checkUserExists = async (uid) => {
     try {
         const user = await req('GET', `/users/${uid}`);
-        return { exists: true, role: user.role || 'client', data: { subRole: user.sub_role } };
+        return { exists: true, role: user.role || null, data: { subRole: user.sub_role || null } };
     } catch {
         return { exists: false };
     }

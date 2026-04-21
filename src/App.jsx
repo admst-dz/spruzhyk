@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
 import { Interface, ZoomControls } from './components/Interface'
@@ -18,6 +18,7 @@ function App() {
     const [screen, setScreen] = useState('home');
     const [showAuth, setShowAuth] = useState(false);
     const [pendingSuccessToast, setPendingSuccessToast] = useState(false);
+    const authInitialized = useRef(false);
 
     const {
         activeProduct,
@@ -55,23 +56,30 @@ function App() {
     // --- ЛОГИКА: СЛУШАТЕЛЬ FIREBASE (ВОШЕЛ/ВЫШЕЛ) ---
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setAuthLoading(true);
+            // Спиннер только при первой проверке (загрузка страницы),
+            // чтобы не перекрывать модалку авторизации при входе
+            const isFirstCheck = !authInitialized.current;
+            if (isFirstCheck) setAuthLoading(true);
+
             if (user) {
                 setCurrentUser(user);
                 try {
                     const { role, subRole } = await getUserRole(user.uid);
-                    setUserRole(role || 'client');
+                    setUserRole(role || null);
                     if (subRole) setClientSubRole(subRole);
                     await claimGuestOrders(user.uid, user.email);
                 } catch (e) {
                     console.error('getUserRole failed:', e);
-                    setUserRole('client');
                 }
             } else {
                 setCurrentUser(null);
                 setUserRole(null);
             }
-            setAuthLoading(false);
+
+            if (isFirstCheck) {
+                setAuthLoading(false);
+                authInitialized.current = true;
+            }
         });
         return () => unsubscribe();
     }, [setCurrentUser, setUserRole, setAuthLoading]);
