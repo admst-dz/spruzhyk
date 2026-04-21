@@ -44,8 +44,9 @@ export const Order = ({ onBack, onSuccess }) => {
         }
         setLoading(true);
         const orderPayload = {
-            userId: 'guest',
-            userEmail: formData.email || 'Не указан',
+            userId: null,
+            isGuest: true,
+            userEmail: formData.email || '',
             clientType,
             contact: { ...formData },
             productConfig: {

@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAjNllw0Dm_wszZpHgqNhZZGs2eGhlgPM",
@@ -76,11 +76,33 @@ export const deductUserTokens = async (uid, amountToDeduct) => {
     return false; // Недостаточно средств
 };
 
-// 3. Загрузка заказов клиента
-export const fetchUserOrders = async (uid) => {
-    const q = query(collection(db, "Orders"), where("userId", "==", uid));
+// 3. Загрузка заказов клиента (включая гостевые по email)
+export const fetchUserOrders = async (uid, email) => {
+    const toRow = d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' });
+
+    const q1 = query(collection(db, "Orders"), where("userId", "==", uid));
+    const snap1 = await getDocs(q1);
+    const authOrders = snap1.docs.map(toRow);
+
+    if (!email) return authOrders;
+
+    const q2 = query(collection(db, "Orders"), where("userEmail", "==", email), where("isGuest", "==", true));
+    const snap2 = await getDocs(q2);
+    const guestOrders = snap2.docs.map(toRow);
+
+    const seen = new Set(authOrders.map(o => o.id));
+    return [...authOrders, ...guestOrders.filter(o => !seen.has(o.id))];
+};
+
+// 3b. Привязать гостевые заказы к аккаунту после логина
+export const claimGuestOrders = async (uid, email) => {
+    if (!email) return;
+    const q = query(collection(db, "Orders"), where("userEmail", "==", email), where("isGuest", "==", true));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
+    if (snap.empty) return;
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.update(d.ref, { userId: uid, isGuest: false }));
+    await batch.commit();
 };
 
 // 4. Загрузка всех заказов (Для Дилера)

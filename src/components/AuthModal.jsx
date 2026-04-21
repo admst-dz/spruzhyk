@@ -21,6 +21,7 @@ export const AuthModal = ({ onClose }) => {
             onClose();
         } else {
             setTempUser(user);
+            setLoading(false);
             setStep(2);
         }
     };

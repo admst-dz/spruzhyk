@@ -9,7 +9,7 @@ import { AuthModal } from './components/AuthModal'
 import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬТЕ ЭТОТ ИМПОРТ
 import { useConfigurator } from './store'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth, getUserRole } from './firebase'
+import { auth, getUserRole, claimGuestOrders } from './firebase'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
 
@@ -55,6 +55,7 @@ function App() {
                 const role = await getUserRole(user.uid);
                 setCurrentUser(user);
                 setUserRole(role || 'client');
+                await claimGuestOrders(user.uid, user.email);
             } else {
                 setCurrentUser(null);
                 setUserRole(null);

@@ -48,7 +48,7 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
     useEffect(() => {
         if (activeTab === 'orders' && currentUser) {
             setOrdersLoading(true);
-            fetchUserOrders(currentUser.uid).then(data => {
+            fetchUserOrders(currentUser.uid, currentUser.email).then(data => {
                 data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
                 setOrders(data);
                 setOrdersLoading(false);
