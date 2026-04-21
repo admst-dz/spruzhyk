@@ -13,6 +13,14 @@ html, body, #root {
   background-color: #E5E5E5;
   transition: background-color 0.4s ease;
 }
+
+@media (max-width: 768px) {
+  html, body, #root {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100%;
+  }
+}
 html.dark, html.dark body, html.dark #root {
   background-color: #0B0F19;
 }
