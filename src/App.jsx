@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
-import { Interface } from './components/Interface'
+import { Interface, ZoomControls } from './components/Interface'
 import { Home } from './components/Home'
 import { Order } from './components/Order'
 import { DealerDashboard } from './components/DealerDashboard'
@@ -29,7 +29,9 @@ function App() {
         userRole,
         authLoading,
         logout,
-        theme
+        theme,
+        zoomLevel,
+        setZoom
     } = useConfigurator();
 
     useEffect(() => {
@@ -161,6 +163,9 @@ function App() {
                     ) : (
                         <>
                             <div className="relative w-full h-[45%] md:absolute md:inset-0 md:w-[75%] md:h-full bg-[#dcdcdc] dark:bg-[#0A0E1A] md:bg-transparent dark:md:bg-transparent">
+                                <div className="absolute bottom-4 right-4 z-10 md:hidden">
+                                    <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
+                                </div>
                                 <Canvas
                                     shadows
                                     dpr={[1, 2]} // Адаптация под ретину (Safari/iPhone)

@@ -60,10 +60,6 @@ export const Interface = ({ onFinish }) => {
     return (
         <div className="pointer-events-auto w-full h-full md:h-[95%] custom-gradient backdrop-blur-xl rounded-t-[30px] md:rounded-[9px] shadow-2xl flex flex-col overflow-hidden font-zen border-t md:border border-white/20 relative">
 
-            <div className="fixed top-20 right-4 z-50 md:absolute md:top-[-60px] md:right-0">
-                <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
-            </div>
-
             <div className="flex items-end gap-8 px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
                 <button onClick={() => { setTab('cover'); setNotebookOpen(false); }} className={`text-2xl md:text-3xl transition-all leading-none ${tab === 'cover' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'}`}>Обложка</button>
                 <button onClick={() => { setTab('block'); setNotebookOpen(true); }} className={`text-2xl md:text-3xl transition-all leading-none ${tab === 'block' ? 'opacity-100 scale-105 border-b-2 border-white pb-1' : 'opacity-50 hover:opacity-80'}`}>Блок</button>
@@ -222,7 +218,7 @@ const LogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLogo, res
         </div>
     );
 };
-const ZoomControls = ({ zoomLevel, setZoom }) => (
+export const ZoomControls = ({ zoomLevel, setZoom }) => (
     <div className="flex flex-col gap-1 bg-white/80 backdrop-blur-md rounded-[9px] p-1 border border-white/40 shadow-xl">
         <button onClick={() => setZoom(Math.min(zoomLevel + 0.1, 2.5))} className="w-10 h-10 flex items-center justify-center text-[#1a1a1a] hover:bg-white rounded-[6px] transition active:scale-95"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
         <div className="h-px w-full bg-black/10" />
