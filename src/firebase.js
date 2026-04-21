@@ -126,6 +126,11 @@ export const fetchDealerProducts = async (dealerId) => {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
+export const fetchAllProducts = async () => {
+    const snap = await getDocs(collection(db, "Products"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
 export const saveProduct = async (productData) => {
     const docRef = await addDoc(collection(db, "Products"), {
         ...productData,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
-import { db, fetchUserOrders } from '../firebase';
+import { db, fetchUserOrders, fetchAllProducts } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const TabBtn = ({ active, children, onClick }) => (
@@ -40,6 +40,8 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
+    const [products, setProducts] = useState([]);
+    const [productsLoading, setProductsLoading] = useState(false);
 
     useEffect(() => {
         if (showSuccessToast) {
@@ -67,16 +69,16 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
         }
     }, [activeTab, currentUser]);
 
-    const corporateCatalog = [
-        { id: 'c1', name: 'Ежедневник', desc: 'Кастомизация обложки, бумага, переплёт', priceBYN: 1500, img: '/patterns/Notebook.svg', has3D: true, accent: 'blue' },
-        { id: 'c2', name: 'Календарь настольный', desc: 'В разработке', priceBYN: 800, img: '/patterns/Calendar.svg', has3D: false, accent: 'indigo' },
-    ];
+    useEffect(() => {
+        if (activeTab === 'catalog') {
+            setProductsLoading(true);
+            fetchAllProducts().then(data => {
+                setProducts(data);
+                setProductsLoading(false);
+            });
+        }
+    }, [activeTab]);
 
-    const accentMap = {
-        blue: 'bg-blue-500/20 group-hover:bg-blue-500/30',
-        indigo: 'bg-indigo-500/20 group-hover:bg-indigo-500/30',
-        teal: 'bg-teal-500/20 group-hover:bg-teal-500/30',
-    };
 
     const handleGenerateRenders = () => {
         setIsGenerating(true);
@@ -158,37 +160,43 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
 
                 {/* CATALOG TAB */}
                 {activeTab === 'catalog' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {corporateCatalog.map(prod => (
-                            <div
-                                key={prod.id}
-                                className="group relative flex flex-col rounded-[24px] bg-white/[0.03] border border-white/10 backdrop-blur-xl overflow-hidden hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 p-6"
-                            >
-                                <div className={`absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 blur-[70px] rounded-full transition-colors duration-500 ${accentMap[prod.accent] || accentMap.blue}`}></div>
-                                <div className="relative z-10 aspect-square bg-white/5 rounded-[16px] mb-5 flex items-center justify-center p-6 border border-white/5">
-                                    <img src={prod.img} alt={prod.name} className="w-[55%] opacity-70 group-hover:scale-105 group-hover:opacity-90 transition-all duration-500" />
-                                </div>
-                                <div className="relative z-10 flex flex-col flex-1">
-                                    <h3 className="font-bold text-base text-white mb-1">{prod.name}</h3>
-                                    <p className="text-xs text-gray-500 mb-4 flex-1">{prod.desc}</p>
-                                    <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                                        <span className="font-bold text-white">{prod.priceBYN} BYN</span>
-                                        {prod.has3D ? (
-                                            <button
-                                                onClick={onOpenConfigurator}
-                                                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all"
-                                            >
-                                                В 3D Редактор
-                                            </button>
-                                        ) : (
-                                            <button className="px-4 py-2 bg-white/5 text-gray-600 text-xs font-bold uppercase tracking-widest rounded-full cursor-not-allowed border border-white/5">
-                                                В разработке
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                    <div>
+                        {productsLoading ? (
+                            <div className="py-16 flex flex-col items-center gap-3">
+                                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Загрузка...</p>
                             </div>
-                        ))}
+                        ) : products.length === 0 ? (
+                            <div className="py-16 flex flex-col items-center gap-4">
+                                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Каталог пуст</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {products.map(prod => (
+                                    <div key={prod.id} className="group relative flex flex-col rounded-[24px] bg-white/[0.03] border border-white/10 backdrop-blur-xl overflow-hidden hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 p-6">
+                                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 blur-[70px] rounded-full bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors duration-500"></div>
+                                        <div className="relative z-10 flex flex-col flex-1 gap-3">
+                                            <h3 className="font-bold text-base text-white">{prod.name}</h3>
+                                            {prod.formats?.length > 0 && (
+                                                <p className="text-xs text-gray-500">Форматы: {prod.formats.join(', ')}</p>
+                                            )}
+                                            {prod.binding?.length > 0 && (
+                                                <p className="text-xs text-gray-500">Переплёт: {prod.binding.map(b => b === 'hard' ? 'Твёрдый' : 'На пружине').join(', ')}</p>
+                                            )}
+                                            <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
+                                                <span className="font-bold text-white">{prod.retailPrice ? `${prod.retailPrice} BYN` : 'По запросу'}</span>
+                                                <button
+                                                    onClick={onOpenConfigurator}
+                                                    className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all"
+                                                >
+                                                    В 3D Редактор
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 

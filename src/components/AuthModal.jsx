@@ -16,8 +16,9 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [tempUser, setTempUser] = useState(null);
 
     const handleAuthSuccess = async (user) => {
-        const { exists } = await checkUserExists(user.uid);
+        const { exists, role, data } = await checkUserExists(user.uid);
         if (exists) {
+            onRoleCreated?.(role || 'client', data?.subRole || null);
             onClose();
         } else {
             setTempUser(user);
