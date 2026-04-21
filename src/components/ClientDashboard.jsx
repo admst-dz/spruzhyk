@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
-import { db, fetchUserOrders, fetchAllProducts } from '../firebase';
+import { db, fetchUserOrders, fetchAllProducts, auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const TabBtn = ({ active, children, onClick }) => (
@@ -138,7 +139,7 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
                     </div>
 
                     <button
-                        onClick={() => { logout(); onBack(); }}
+                        onClick={() => { signOut(auth); logout(); onBack(); }}
                         className="flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors px-4 py-2 rounded-full text-xs font-bold text-gray-300 uppercase tracking-widest"
                     >
                         Выйти
