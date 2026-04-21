@@ -32,7 +32,7 @@ const OrderStatus = ({ status }) => {
     );
 };
 
-export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, onSuccessToastShown }) => {
+export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown }) => {
     const { currentUser, logout, clientSubRole, cartItem, clearCart, addToCart } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'catalog');
 
@@ -183,14 +183,8 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
                                             {prod.binding?.length > 0 && (
                                                 <p className="text-xs text-gray-500">Переплёт: {prod.binding.map(b => b === 'hard' ? 'Твёрдый' : 'На пружине').join(', ')}</p>
                                             )}
-                                            <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
+                                            <div className="pt-4 border-t border-white/5 mt-auto">
                                                 <span className="font-bold text-white">{prod.retailPrice ? `${prod.retailPrice} BYN` : 'По запросу'}</span>
-                                                <button
-                                                    onClick={onOpenConfigurator}
-                                                    className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all"
-                                                >
-                                                    В 3D Редактор
-                                                </button>
                                             </div>
                                         </div>
                                     </div>

@@ -26,6 +26,7 @@ function App() {
         setAuthLoading,
         currentUser,
         userRole,
+        authLoading,
         logout,
         theme
     } = useConfigurator();
@@ -71,6 +72,14 @@ function App() {
         });
         return () => unsubscribe();
     }, [setCurrentUser, setUserRole, setAuthLoading]);
+
+    if (authLoading) {
+        return (
+            <div className="fixed inset-0 bg-[#0B0F19] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <>
@@ -119,7 +128,6 @@ function App() {
             {/* --- ЭКРАН: УМНЫЙ ДАШБОРД КЛИЕНТА (ПЛ, ПКЛ, КЛ) --- */}
             {screen === 'client_dashboard' && (
                 <ClientDashboard
-                    onOpenConfigurator={() => setScreen('configurator')}
                     onBack={() => setScreen('home')}
                     showSuccessToast={pendingSuccessToast}
                     onSuccessToastShown={() => setPendingSuccessToast(false)}
