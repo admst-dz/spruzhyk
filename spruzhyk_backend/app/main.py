@@ -1,9 +1,11 @@
 from fastapi import FastAPI
+from app.database import engine, Base
+from app.api.v1 import users, products, orders
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import users, orders, products
+Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Spruzhuk API")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,13 +15,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-API_PREFIX = "/api/v1"
-
-app.include_router(users.router, prefix=API_PREFIX)
-app.include_router(orders.router, prefix=API_PREFIX)
-app.include_router(products.router, prefix=API_PREFIX)
-
-
-@app.get("/")
-async def root():
-    return {"status": "ok"}
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
+app.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
