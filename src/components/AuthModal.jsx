@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -6,8 +6,8 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider, createUserProfile, checkUserExists } from '../firebase';
 
-export const AuthModal = ({ onClose }) => {
-    const [step, setStep] = useState(1); // 1: Login/Register, 2: Choose Role
+export const AuthModal = ({ onClose, onRoleCreated }) => {
+    const [step, setStep] = useState(1); // 1: Login/Register, 2: Choose Role, 3: Choose SubRole
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,11 +16,13 @@ export const AuthModal = ({ onClose }) => {
     const [tempUser, setTempUser] = useState(null);
 
     const handleAuthSuccess = async (user) => {
-        const { exists } = await checkUserExists(user.uid);
+        const { exists, role, data } = await checkUserExists(user.uid);
         if (exists) {
+            onRoleCreated?.(role || 'client', data?.subRole || null);
             onClose();
         } else {
             setTempUser(user);
+            setLoading(false);
             setStep(2);
         }
     };
@@ -40,8 +42,8 @@ export const AuthModal = ({ onClose }) => {
         } catch (err) {
             if (err.code === 'auth/email-already-in-use') setError('Этот Email уже зарегистрирован.');
             else if (err.code === 'auth/weak-password') setError('Пароль должен быть не менее 6 символов.');
-            else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') setError('Неверный Email или пароль.');
-            else setError(err.message.replace('Firebase: ', ''));
+            else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') setError('Неверный Email или пароль.');
+            else setError(err.message?.replace('Firebase: ', '') || 'Произошла ошибка. Попробуйте снова.');
             setLoading(false);
         }
     };
@@ -58,16 +60,32 @@ export const AuthModal = ({ onClose }) => {
         }
     };
 
-    const selectRole = async (role) => {
-        if (tempUser) {
+    const selectRole = (role) => {
+        if (!tempUser) return;
+        if (role === 'dealer') {
             setLoading(true);
-            try {
-                await createUserProfile(tempUser, role);
+            createUserProfile(tempUser, 'dealer').then(() => {
+                onRoleCreated?.('dealer', null);
                 onClose();
-            } catch (err) {
+            }).catch(() => {
                 setError("Ошибка при сохранении роли.");
                 setLoading(false);
-            }
+            });
+        } else {
+            setStep(3);
+        }
+    };
+
+    const selectSubRole = async (subRole) => {
+        if (!tempUser) return;
+        setLoading(true);
+        try {
+            await createUserProfile(tempUser, 'client', subRole);
+            onRoleCreated?.('client', subRole);
+            onClose();
+        } catch (err) {
+            setError("Ошибка при сохранении.");
+            setLoading(false);
         }
     };
 
@@ -172,8 +190,8 @@ export const AuthModal = ({ onClose }) => {
                             </button>
                         </div>
                     </div>
-                ) : (
-                    // --- ШАГ 2: ВЫБОР РОЛИ (Также в темном стиле) ---
+                ) : step === 2 ? (
+                    // --- ШАГ 2: ВЫБОР РОЛИ ---
                     <div className="relative z-10 flex flex-col items-center animate-fade-in text-center">
                         <div className="w-14 h-14 bg-white/10 rounded-[16px] flex items-center justify-center mb-6 border border-white/20">
                             <span className="text-2xl">👤</span>
@@ -195,6 +213,41 @@ export const AuthModal = ({ onClose }) => {
                                 <div className="flex-1">
                                     <h3 className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">Дилер</h3>
                                     <p className="text-[10px] text-gray-500 mt-0.5">Типография / Агентство</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    // --- ШАГ 3: ВЫБОР ПОДТИПА КЛИЕНТА ---
+                    <div className="relative z-10 flex flex-col items-center animate-fade-in text-center">
+                        <div className="w-14 h-14 bg-white/10 rounded-[16px] flex items-center justify-center mb-6 border border-white/20">
+                            <span className="text-2xl">🎯</span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Как будете заказывать?</h2>
+                        <p className="text-gray-400 text-sm mb-8">Это поможет нам подобрать лучшие условия</p>
+
+                        <div className="flex flex-col gap-4 w-full">
+                            <button onClick={() => selectSubRole('PL')} disabled={loading} className="group w-full p-4 bg-black/20 border border-white/10 hover:border-emerald-400/50 rounded-[16px] transition-all text-left flex items-center gap-4 hover:bg-emerald-400/10 active:scale-95">
+                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-xl border border-white/10 group-hover:border-emerald-400/50 transition-colors">👤</div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">Физическое лицо</h3>
+                                    <p className="text-[10px] text-gray-500 mt-0.5">Заказ для себя</p>
+                                </div>
+                            </button>
+
+                            <button onClick={() => selectSubRole('КПР')} disabled={loading} className="group w-full p-4 bg-black/20 border border-white/10 hover:border-yellow-400/50 rounded-[16px] transition-all text-left flex items-center gap-4 hover:bg-yellow-400/10 active:scale-95">
+                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-xl border border-white/10 group-hover:border-yellow-400/50 transition-colors">🏛️</div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-sm text-white group-hover:text-yellow-400 transition-colors">Представитель компании</h3>
+                                    <p className="text-[10px] text-gray-500 mt-0.5">Корпоративный заказ</p>
+                                </div>
+                            </button>
+
+                            <button onClick={() => selectSubRole('КЛ')} disabled={loading} className="group w-full p-4 bg-black/20 border border-white/10 hover:border-purple-400/50 rounded-[16px] transition-all text-left flex items-center gap-4 hover:bg-purple-400/10 active:scale-95">
+                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-xl border border-white/10 group-hover:border-purple-400/50 transition-colors">🤝</div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-sm text-white group-hover:text-purple-400 transition-colors">Корпоративный клиент</h3>
+                                    <p className="text-[10px] text-gray-500 mt-0.5">Постоянные оптовые заказы</p>
                                 </div>
                             </button>
                         </div>

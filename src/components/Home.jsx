@@ -103,7 +103,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                         </div>
                     </div>
 
-                    {/* Карточка 2: Календарь */}
+                    {/* Карточка 2: Календарь
                     <div onClick={() => handleSelect('calendar')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-[60px] group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-400/30 transition-colors duration-500"></div>
                         <div className="h-64 w-full flex items-center justify-center relative z-10">
@@ -120,11 +120,11 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                                 {t(language, 'openBtn')}
                             </button>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Карточка 3: Блокнот */}
                     {/* ВАЖНО: Указываем bindingType: 'spiral' и isSketchbook: true */}
-                    <div onClick={() => handleSelect('sketchbook')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
+                    {/* <div onClick={() => handleSelect('sketchbook')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-teal-500/10 dark:bg-teal-500/20 blur-[60px] group-hover:bg-teal-500/20 dark:group-hover:bg-teal-400/30 transition-colors duration-500"></div>
                         <div className="h-64 w-full flex items-center justify-center relative z-10">
                             <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
@@ -144,7 +144,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                                 {t(language, 'openBtn')}
                             </button>
                         </div>
-                    </div>
+                    </div> */}
 
                 </div>
             </main>

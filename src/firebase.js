@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, writeBatch } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAjNllw0Dm_wszZpHgqNhZZGs2eGhlgPM",
@@ -15,41 +16,42 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Получение роли
+// Получение роли + subRole
 export const getUserRole = async (uid) => {
-    if (!uid) return null;
-    const dealerSnap = await getDoc(doc(db, "Dealers", uid));
-    if (dealerSnap.exists()) return 'dealer';
+    if (!uid) return { role: null, subRole: null };
     const userSnap = await getDoc(doc(db, "Users", uid));
-    if (userSnap.exists()) return 'client';
-    return null;
+    if (userSnap.exists()) {
+        const data = userSnap.data();
+        return { role: data.role || 'client', subRole: data.subRole || null };
+    }
+    return { role: null, subRole: null };
 };
 
-// Создание профиля
-export const createUserProfile = async (user, role) => {
+// Создание профиля (все пользователи в Users)
+export const createUserProfile = async (user, role, subRole = null) => {
     if (!user) return;
-    const collectionName = role === 'dealer' ? "Dealers" : "Users";
-    const userRef = doc(db, collectionName, user.uid);
+    const userRef = doc(db, "Users", user.uid);
+    const data = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        role,
+        createdAt: serverTimestamp(),
+        ...(role === 'client' && subRole ? { subRole } : {}),
+    };
     try {
-        await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            role: role,
-            createdAt: new Date(),
-        });
+        await setDoc(userRef, data);
     } catch (error) { console.log('Error creating user profile', error); }
     return userRef;
 };
 
 // Проверка юзера
 export const checkUserExists = async (uid) => {
-    const dealerSnap = await getDoc(doc(db, "Dealers", uid));
-    if (dealerSnap.exists()) return { exists: true, role: 'dealer', data: dealerSnap.data() };
     const userSnap = await getDoc(doc(db, "Users", uid));
-    if (userSnap.exists()) return { exists: true, role: 'client', data: userSnap.data() };
+    if (userSnap.exists()) return { exists: true, role: userSnap.data().role || 'client', data: userSnap.data() };
     return { exists: false };
 };
 
@@ -62,7 +64,7 @@ export const createOrderInDB = async (orderData) => {
     return docRef.id;
 };
 
-// 2. Списание токенов у пользователя (ПЛ/КЛ)
+// Списание токенов у пользователя
 export const deductUserTokens = async (uid, amountToDeduct) => {
     const userRef = doc(db, "Users", uid);
     const userSnap = await getDoc(userRef);
@@ -70,26 +72,87 @@ export const deductUserTokens = async (uid, amountToDeduct) => {
         const currentTokens = userSnap.data().tokenBalance || 0;
         if (currentTokens >= amountToDeduct) {
             await updateDoc(userRef, { tokenBalance: currentTokens - amountToDeduct });
-            return true; // Успех
+            return true;
         }
     }
-    return false; // Недостаточно средств
+    return false;
 };
 
-// 3. Загрузка заказов клиента
-export const fetchUserOrders = async (uid) => {
-    const q = query(collection(db, "Orders"), where("userId", "==", uid));
+// Загрузка заказов клиента (включая гостевые по email)
+export const fetchUserOrders = async (uid, email) => {
+    const toRow = d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' });
+
+    const q1 = query(collection(db, "Orders"), where("userId", "==", uid));
+    const snap1 = await getDocs(q1);
+    const authOrders = snap1.docs.map(toRow);
+
+    if (!email) return authOrders;
+
+    const q2 = query(collection(db, "Orders"), where("userEmail", "==", email), where("isGuest", "==", true));
+    const snap2 = await getDocs(q2);
+    const guestOrders = snap2.docs.map(toRow);
+
+    const seen = new Set(authOrders.map(o => o.id));
+    return [...authOrders, ...guestOrders.filter(o => !seen.has(o.id))];
+};
+
+// Привязать гостевые заказы к аккаунту после логина
+export const claimGuestOrders = async (uid, email) => {
+    if (!email) return;
+    const q = query(collection(db, "Orders"), where("userEmail", "==", email), where("isGuest", "==", true));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
+    if (snap.empty) return;
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.update(d.ref, { userId: uid, isGuest: false }));
+    await batch.commit();
 };
 
-// 4. Загрузка всех заказов (Для Дилера)
+// Загрузка всех заказов (для Дилера)
 export const fetchAllOrders = async () => {
     const snap = await getDocs(collection(db, "Orders"));
     return snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString() : 'Сейчас' }));
 };
 
-// 5. Дилер: Обновление статуса заказа
+// Дилер: Обновление статуса заказа
 export const updateOrderStatus = async (orderId, newStatus) => {
     await updateDoc(doc(db, "Orders", orderId), { status: newStatus, updatedAt: serverTimestamp() });
+};
+
+// ─── Products ────────────────────────────────────────────────────────────────
+
+export const fetchDealerProducts = async (dealerId) => {
+    const q = query(collection(db, "Products"), where("dealerId", "==", dealerId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const fetchAllProducts = async () => {
+    const snap = await getDocs(collection(db, "Products"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const saveProduct = async (productData) => {
+    const docRef = await addDoc(collection(db, "Products"), {
+        ...productData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+};
+
+export const updateProduct = async (productId, data) => {
+    await updateDoc(doc(db, "Products", productId), {
+        ...data,
+        updatedAt: serverTimestamp(),
+    });
+};
+
+export const deleteProduct = async (productId) => {
+    await deleteDoc(doc(db, "Products", productId));
+};
+
+export const uploadProductImage = async (file, dealerId) => {
+    const storageRef = ref(storage, `products/${dealerId}/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
 };

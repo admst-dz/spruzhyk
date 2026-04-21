@@ -9,21 +9,24 @@ import { AuthModal } from './components/AuthModal'
 import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬТЕ ЭТОТ ИМПОРТ
 import { useConfigurator } from './store'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth, getUserRole } from './firebase'
+import { auth, getUserRole, claimGuestOrders } from './firebase'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
 
 function App() {
     const [screen, setScreen] = useState('home');
     const [showAuth, setShowAuth] = useState(false);
+    const [pendingSuccessToast, setPendingSuccessToast] = useState(false);
 
     const {
         activeProduct,
         setCurrentUser,
         setUserRole,
+        setClientSubRole,
         setAuthLoading,
         currentUser,
         userRole,
+        authLoading,
         logout,
         theme
     } = useConfigurator();
@@ -51,9 +54,16 @@ function App() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setAuthLoading(true);
             if (user) {
-                const role = await getUserRole(user.uid);
                 setCurrentUser(user);
-                setUserRole(role || 'client');
+                try {
+                    const { role, subRole } = await getUserRole(user.uid);
+                    setUserRole(role || 'client');
+                    if (subRole) setClientSubRole(subRole);
+                    await claimGuestOrders(user.uid, user.email);
+                } catch (e) {
+                    console.error('getUserRole failed:', e);
+                    setUserRole('client');
+                }
             } else {
                 setCurrentUser(null);
                 setUserRole(null);
@@ -63,10 +73,26 @@ function App() {
         return () => unsubscribe();
     }, [setCurrentUser, setUserRole, setAuthLoading]);
 
+    if (authLoading) {
+        return (
+            <div className="fixed inset-0 bg-[#0B0F19] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <>
             {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
-            {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+            {showAuth && (
+                <AuthModal
+                    onClose={() => setShowAuth(false)}
+                    onRoleCreated={(role, subRole) => {
+                        setUserRole(role);
+                        if (subRole) setClientSubRole(subRole);
+                    }}
+                />
+            )}
 
 
             {/* --- ЭКРАН: ГЛАВНАЯ СТРАНИЦА --- */}
@@ -83,7 +109,13 @@ function App() {
             {/* --- ЭКРАН: КОРЗИНА ГОСТЯ --- */}
             {/* Доступно только для незарегистрированных пользователей */}
             {screen === 'order' && (
-                <Order onBack={() => setScreen('configurator')} />
+                <Order
+                    onBack={() => setScreen('configurator')}
+                    onSuccess={() => {
+                        setPendingSuccessToast(true);
+                        setShowAuth(true);
+                    }}
+                />
             )}
 
 
@@ -96,8 +128,9 @@ function App() {
             {/* --- ЭКРАН: УМНЫЙ ДАШБОРД КЛИЕНТА (ПЛ, ПКЛ, КЛ) --- */}
             {screen === 'client_dashboard' && (
                 <ClientDashboard
-                    onOpenConfigurator={() => setScreen('configurator')}
                     onBack={() => setScreen('home')}
+                    showSuccessToast={pendingSuccessToast}
+                    onSuccessToastShown={() => setPendingSuccessToast(false)}
                 />
             )}
 
