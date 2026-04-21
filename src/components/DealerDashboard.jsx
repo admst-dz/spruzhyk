@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
-import { fetchAllOrders, updateOrderStatus, fetchDealerProducts, saveProduct, updateProduct, deleteProduct } from '../firebase';
+import { fetchAllOrders, updateOrderStatus, fetchDealerProducts, saveProduct, updateProduct, deleteProduct } from '../api';
 
 const statusConfig = {
     new:        { text: 'Новый',          color: 'bg-white/10 text-gray-400 border-white/10' },

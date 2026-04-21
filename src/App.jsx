@@ -9,7 +9,8 @@ import { AuthModal } from './components/AuthModal'
 import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬТЕ ЭТОТ ИМПОРТ
 import { useConfigurator } from './store'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth, getUserRole, claimGuestOrders } from './firebase'
+import { auth } from './firebase'
+import { getUserRole, claimGuestOrders } from './api'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
 

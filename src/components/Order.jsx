@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useConfigurator } from "../store";
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { createOrderInDB } from '../api';
 import { Canvas } from '@react-three/fiber';
 import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { Notebook } from './Notebook';
@@ -43,25 +42,27 @@ export const Order = ({ onBack, onSuccess }) => {
             return;
         }
         setLoading(true);
-        const orderPayload = {
-            userId: null,
-            isGuest: true,
-            userEmail: formData.email || '',
-            clientType,
-            contact: { ...formData },
-            productConfig: {
-                type: 'notebook', format, bindingType, coverColor, hasElastic,
-                elasticColor: hasElastic ? elasticColor : null,
-                spiralColor: bindingType === 'spiral' ? spiralColor : null,
-                paperPattern, hasLogo: logos.length > 0,
-            },
-            quantity, isSample,
-            estimatedPrice: 'По запросу',
-            status: 'new',
-            createdAt: serverTimestamp(),
-        };
         try {
-            await addDoc(collection(db, 'Orders'), orderPayload);
+            await createOrderInDB({
+                user_id: null,
+                user_email: formData.email || '',
+                product_name: 'Ежедневник',
+                configuration: {
+                    clientType,
+                    contact: { ...formData },
+                    isSample,
+                    productConfig: {
+                        type: activeProduct, format, bindingType, coverColor, hasElastic,
+                        elasticColor: hasElastic ? elasticColor : null,
+                        spiralColor: bindingType === 'spiral' ? spiralColor : null,
+                        paperPattern, hasLogo: logos.length > 0,
+                    },
+                },
+                quantity,
+                total_price: null,
+                currency: 'BYN',
+                is_guest: true,
+            });
             onSuccess();
         } catch (error) {
             console.error("Order error:", error);

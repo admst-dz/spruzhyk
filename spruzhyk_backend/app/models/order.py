@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer, Boolean
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -19,8 +19,9 @@ class Order(Base):
     configuration = Column(JSONB, nullable=False)
 
     quantity = Column(Integer, default=1)
-    total_price = Column(Float, nullable=False)
-    currency = Column(String, default="RUB")
+    total_price = Column(Float, nullable=True)
+    currency = Column(String, default="BYN")
+    is_guest = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="orders")
 
