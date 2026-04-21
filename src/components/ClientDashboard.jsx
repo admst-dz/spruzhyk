@@ -22,12 +22,13 @@ const OrderStatus = ({ status }) => {
 };
 
 export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
-    const { currentUser, logout, clientSubRole, cartItem, clearCart } = useConfigurator();
+    const { currentUser, logout, clientSubRole, cartItem, clearCart, addToCart } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'catalog');
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [orderSuccess, setOrderSuccess] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'orders' && currentUser) {
@@ -47,7 +48,10 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
 
     const handleGenerateRenders = () => {
         setIsGenerating(true);
-        setTimeout(() => { setCartItem(prev => ({ ...prev, status: 'renders_ready', rendersGenerated: 3 })); setIsGenerating(false); }, 1500);
+        setTimeout(() => {
+            addToCart({ ...cartItem, status: 'renders_ready', rendersGenerated: 3 });
+            setIsGenerating(false);
+        }, 1500);
     };
 
     const handleApprove = async () => {
@@ -64,9 +68,16 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
                 createdAt: serverTimestamp(),
             };
 
-            await addDoc(collection(db, 'Orders'), orderPayload);
+            const docRef = await addDoc(collection(db, 'Orders'), orderPayload);
 
-            alert(`Дизайн согласован! Заказ оформлен.`);
+            const newOrder = {
+                id: docRef.id,
+                ...orderPayload,
+                createdAt: null,
+                date: new Date().toLocaleDateString(),
+            };
+            setOrders(prev => [newOrder, ...prev]);
+            setOrderSuccess(true);
             clearCart();
             setActiveTab('orders');
 
@@ -149,6 +160,12 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack }) => {
 
                 {activeTab === 'orders' && (
                     <div className="animate-fade-in">
+                        {orderSuccess && (
+                            <div className="mb-6 bg-green-50 border border-green-200 rounded-[16px] px-6 py-4 flex items-center justify-between">
+                                <span className="text-green-700 font-bold text-sm">✅ Заказ успешно оформлен! Менеджер свяжется с вами.</span>
+                                <button onClick={() => setOrderSuccess(false)} className="text-green-500 hover:text-green-700 text-xs font-bold uppercase tracking-widest ml-4">✕</button>
+                            </div>
+                        )}
                         <h2 className="text-2xl font-black uppercase mb-6">Мои заказы</h2>
                         <div className="bg-white rounded-[20px] shadow-sm border border-gray-200 overflow-hidden">
                             {ordersLoading ? (
