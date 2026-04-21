@@ -68,8 +68,8 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
     }, [activeTab, currentUser]);
 
     const corporateCatalog = [
-        { id: 'c1', name: 'Ежедневник', desc: 'Кастомизация обложки, бумага, переплёт', priceRUB: 1500, img: '/patterns/Notebook.svg', has3D: true, accent: 'blue' },
-        { id: 'c2', name: 'Календарь настольный', desc: 'В разработке', priceRUB: 800, img: '/patterns/Calendar.svg', has3D: false, accent: 'indigo' },
+        { id: 'c1', name: 'Ежедневник', desc: 'Кастомизация обложки, бумага, переплёт', priceBYN: 1500, img: '/patterns/Notebook.svg', has3D: true, accent: 'blue' },
+        { id: 'c2', name: 'Календарь настольный', desc: 'В разработке', priceBYN: 800, img: '/patterns/Calendar.svg', has3D: false, accent: 'indigo' },
     ];
 
     const accentMap = {
@@ -94,8 +94,8 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
                 role: clientSubRole || 'client',
                 product: cartItem.productName,
                 design: cartItem.design,
-                price: cartItem.priceRUB,
-                currency: 'RUB',
+                price: cartItem.priceBYN,
+                currency: 'BYN',
                 status: 'new',
                 createdAt: serverTimestamp(),
             };
@@ -172,7 +172,7 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
                                     <h3 className="font-bold text-base text-white mb-1">{prod.name}</h3>
                                     <p className="text-xs text-gray-500 mb-4 flex-1">{prod.desc}</p>
                                     <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                                        <span className="font-bold text-white">{prod.priceRUB} ₽</span>
+                                        <span className="font-bold text-white">{prod.priceBYN} BYN</span>
                                         {prod.has3D ? (
                                             <button
                                                 onClick={onOpenConfigurator}
@@ -208,7 +208,7 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
                                             <h3 className="font-bold text-xl text-white">{cartItem.productName}</h3>
                                             <p className="text-sm text-gray-400 mt-1">{cartItem.design}</p>
                                         </div>
-                                        <span className="font-bold text-2xl text-white">{cartItem.priceRUB} ₽</span>
+                                        <span className="font-bold text-2xl text-white">{cartItem.priceBYN} BYN</span>
                                     </div>
 
                                     <div className="bg-white/5 p-5 rounded-[16px] mb-6 border border-white/5">
@@ -275,7 +275,7 @@ export const ClientDashboard = ({ onOpenConfigurator, onBack, showSuccessToast, 
                                             <p className="text-xs text-gray-500 truncate">{order.design}</p>
                                         </div>
                                         <div className="flex items-center gap-4 shrink-0">
-                                            <span className="font-bold text-white text-sm">{order.price} ₽</span>
+                                            <span className="font-bold text-white text-sm">{order.price} BYN</span>
                                             <OrderStatus status={order.status} />
                                         </div>
                                     </div>

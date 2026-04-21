@@ -240,7 +240,7 @@ const ProductModal = ({ product, dealerId, onClose, onSaved }) => {
                     {/* Pricing */}
                     <Section title="Цена">
                         <div className="mb-5">
-                            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1.5">Розница (₽ / шт)</p>
+                            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1.5">Розница (BYN / шт)</p>
                             <input
                                 type="number"
                                 value={form.retailPrice}
@@ -257,7 +257,7 @@ const ProductModal = ({ product, dealerId, onClose, onSaved }) => {
                                     <div key={i} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-[12px] px-4 py-2.5">
                                         <span className="text-xs text-gray-400">от <span className="text-white font-bold">{tier.minQty}</span> шт.</span>
                                         <span className="text-gray-600">→</span>
-                                        <span className="text-xs text-white font-bold">{tier.pricePerUnit} ₽/шт</span>
+                                        <span className="text-xs text-white font-bold">{tier.pricePerUnit} BYN/шт</span>
                                         <button
                                             onClick={() => setForm(f => ({ ...f, wholesaleTiers: f.wholesaleTiers.filter((_, j) => j !== i) }))}
                                             className="ml-auto text-gray-600 hover:text-red-400 transition-colors text-sm"
@@ -278,7 +278,7 @@ const ProductModal = ({ product, dealerId, onClose, onSaved }) => {
                                 type="number"
                                 value={tierInput.pricePerUnit}
                                 onChange={(e) => setTierInput(t => ({ ...t, pricePerUnit: e.target.value }))}
-                                placeholder="₽ / шт"
+                                placeholder="BYN / шт"
                                 className="w-28 bg-black/20 border border-white/10 rounded-[12px] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30"
                             />
                             <button
@@ -488,9 +488,9 @@ export const DealerDashboard = ({ onBack }) => {
                                         {/* Price + actions */}
                                         <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-2">
                                             <div className="min-w-0">
-                                                <span className="font-bold text-white text-sm">{prod.retailPrice} ₽</span>
+                                                <span className="font-bold text-white text-sm">{prod.retailPrice} BYN</span>
                                                 {prod.wholesaleTiers?.length > 0 && (
-                                                    <span className="text-[10px] text-gray-500 ml-1.5">/ опт {prod.wholesaleTiers[0].pricePerUnit} ₽</span>
+                                                    <span className="text-[10px] text-gray-500 ml-1.5">/ опт {prod.wholesaleTiers[0].pricePerUnit} BYN</span>
                                                 )}
                                             </div>
                                             <div className="flex gap-2 shrink-0">
@@ -561,7 +561,7 @@ export const DealerDashboard = ({ onBack }) => {
                                             <span className="text-xs text-gray-500 truncate">{order.design}</span>
                                         </div>
                                         <div>
-                                            <span className="font-bold text-white">{order.price} ₽</span>
+                                            <span className="font-bold text-white">{order.price} BYN</span>
                                         </div>
                                         <div className="flex justify-end">
                                             {order.status === 'new' ? (

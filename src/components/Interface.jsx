@@ -48,7 +48,7 @@ export const Interface = ({ onFinish }) => {
             productName: `Ежедневник ${format}`,
             design: `Переплет: ${bindingType === 'hard' ? 'Твердый' : 'Пружина'}, Блок: ${paperPattern}`,
             priceTK: 35,
-            priceRUB: 1500,
+            priceBYN: 1500,
             config: { format, coverColor, hasElastic, elasticColor, paperPattern, bindingType, spiralColor },
             status: 'draft',
             rendersGenerated: 0
