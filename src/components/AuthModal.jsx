@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -14,7 +14,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [tempUser, setTempUser] = useState(null);
-    const [tempRole, setTempRole] = useState(null);
 
     const handleAuthSuccess = async (user) => {
         const { exists } = await checkUserExists(user.uid);
@@ -42,8 +41,8 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         } catch (err) {
             if (err.code === 'auth/email-already-in-use') setError('Этот Email уже зарегистрирован.');
             else if (err.code === 'auth/weak-password') setError('Пароль должен быть не менее 6 символов.');
-            else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') setError('Неверный Email или пароль.');
-            else setError(err.message.replace('Firebase: ', ''));
+            else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') setError('Неверный Email или пароль.');
+            else setError(err.message?.replace('Firebase: ', '') || 'Произошла ошибка. Попробуйте снова.');
             setLoading(false);
         }
     };
@@ -72,7 +71,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                 setLoading(false);
             });
         } else {
-            setTempRole('client');
             setStep(3);
         }
     };

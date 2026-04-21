@@ -53,11 +53,16 @@ function App() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setAuthLoading(true);
             if (user) {
-                const { role, subRole } = await getUserRole(user.uid);
                 setCurrentUser(user);
-                setUserRole(role || 'client');
-                if (subRole) setClientSubRole(subRole);
-                await claimGuestOrders(user.uid, user.email);
+                try {
+                    const { role, subRole } = await getUserRole(user.uid);
+                    setUserRole(role || 'client');
+                    if (subRole) setClientSubRole(subRole);
+                    await claimGuestOrders(user.uid, user.email);
+                } catch (e) {
+                    console.error('getUserRole failed:', e);
+                    setUserRole('client');
+                }
             } else {
                 setCurrentUser(null);
                 setUserRole(null);
