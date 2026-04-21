@@ -3,7 +3,7 @@ from logging.config import fileConfig
 import sys
 import os
 
-# 1. Добавляем корень проекта в пути поиска, чтобы Питон видел папку `app`
+# 1. Добавляем корень проекта в пути поиска, чтобы Питон видел папку `api`
 sys.path.insert(0, os.getcwd())
 
 from sqlalchemy import pool
