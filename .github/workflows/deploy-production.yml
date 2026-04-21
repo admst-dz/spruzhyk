@@ -20,14 +20,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build frontend Docker image
-        run: docker build -t spruzhyk-api:latest .
+        run: docker build -t spruzhyk-api:latest -f Dockerfile .
 
       - name: Build backend Docker image
         run: docker build -t spruzhyk-backend:latest ./spruzhyk_backend
 
       - name: Save Docker images to tar
         run: |
-          docker save spruzhyk-app:latest | gzip > spruzhyk-app.tar.gz
+          docker save spruzhyk-api:latest | gzip > spruzhyk-api.tar.gz
           docker save spruzhyk-backend:latest | gzip > spruzhyk-backend.tar.gz
 
       - name: Copy images and compose to server via SCP
@@ -51,7 +51,7 @@ jobs:
           script: |
             set -e
 
-            docker load < /tmp/spruzhyk/spruzhyk-app.tar.gz
+            docker load < /tmp/spruzhyk/spruzhyk-api.tar.gz
             docker load < /tmp/spruzhyk/spruzhyk-backend.tar.gz
 
             mkdir -p /opt/spruzhyk

@@ -91,9 +91,8 @@ export const Experience = () => {
             <directionalLight position={[-10, 5, 2]} intensity={0.5} />
 
             <PresentationControls
-                speed={1.5}
+                speed={isMobile ? 3.5 : 1.5}
                 global
-                // Убираем проп zoom отсюда, так как теперь мы управляем камерой напрямую
                 polar={[-0.1, Math.PI / 4]}
             >
                 {/* contactShadow={false} -> Убирает тень снизу */}
