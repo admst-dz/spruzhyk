@@ -109,3 +109,5 @@ async def delete_product(product_id: str, db: AsyncSession = Depends(get_db)):
     ok = await crud_product.delete_product(db=db, product_id=product_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Product not found")
+
+

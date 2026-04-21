@@ -1,8 +1,10 @@
 version: '3.8'
+
 services:
   db:
     image: postgres:15-alpine
     container_name: spruzhuk_db
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: rootpassword
@@ -11,6 +13,26 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./spruzhyk_backend
+    container_name: spruzhuk_backend
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - ./spruzhyk_backend/.env
+    ports:
+      - "8000:8000"
+
+  app:
+    build: .
+    container_name: spruzhuk_app
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
 
 volumes:
   postgres_data:
