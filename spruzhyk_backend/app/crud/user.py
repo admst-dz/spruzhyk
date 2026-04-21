@@ -1,31 +1,16 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 
+def get_user(db: Session, user_id: int):
+    return db.query(User).filter(User.id == user_id).first()
 
-async def get_user(db: AsyncSession, uid: str):
-    result = await db.execute(select(User).where(User.id == uid))
-    return result.scalar_one_or_none()
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(User).offset(skip).limit(limit).all()
 
-
-async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
-    db_user = User(
-        id=user_data.id,
-        email=user_data.email,
-        display_name=user_data.display_name,
-        role=user_data.role,
-        sub_role=user_data.sub_role,
-        company_name=user_data.company_name,
-    )
+def create_user(db: Session, user: UserCreate):
+    db_user = User(name=user.name, email=user.email)
     db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
+    db.commit()
+    db.refresh(db_user)
     return db_user
-
-
-async def upsert_user(db: AsyncSession, user_data: UserCreate) -> User:
-    existing = await get_user(db, user_data.id)
-    if existing:
-        return existing
-    return await create_user(db, user_data)
