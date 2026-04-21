@@ -17,29 +17,31 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Получение роли
+// Получение роли + subRole
 export const getUserRole = async (uid) => {
-    if (!uid) return null;
+    if (!uid) return { role: null, subRole: null };
     const dealerSnap = await getDoc(doc(db, "Dealers", uid));
-    if (dealerSnap.exists()) return 'dealer';
+    if (dealerSnap.exists()) return { role: 'dealer', subRole: null };
     const userSnap = await getDoc(doc(db, "Users", uid));
-    if (userSnap.exists()) return 'client';
-    return null;
+    if (userSnap.exists()) return { role: 'client', subRole: userSnap.data().subRole || 'PL' };
+    return { role: null, subRole: null };
 };
 
-// Создание профиля
-export const createUserProfile = async (user, role) => {
+// Создание профиля (subRole только для клиентов)
+export const createUserProfile = async (user, role, subRole = null) => {
     if (!user) return;
     const collectionName = role === 'dealer' ? "Dealers" : "Users";
     const userRef = doc(db, collectionName, user.uid);
+    const data = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        role,
+        createdAt: serverTimestamp(),
+        ...(role === 'client' && subRole ? { subRole } : {}),
+    };
     try {
-        await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            role: role,
-            createdAt: new Date(),
-        });
+        await setDoc(userRef, data);
     } catch (error) { console.log('Error creating user profile', error); }
     return userRef;
 };

@@ -22,6 +22,7 @@ function App() {
         activeProduct,
         setCurrentUser,
         setUserRole,
+        setClientSubRole,
         setAuthLoading,
         currentUser,
         userRole,
@@ -52,9 +53,10 @@ function App() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setAuthLoading(true);
             if (user) {
-                const role = await getUserRole(user.uid);
+                const { role, subRole } = await getUserRole(user.uid);
                 setCurrentUser(user);
                 setUserRole(role || 'client');
+                if (subRole) setClientSubRole(subRole);
                 await claimGuestOrders(user.uid, user.email);
             } else {
                 setCurrentUser(null);
