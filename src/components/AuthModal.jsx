@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider, createUserProfile, checkUserExists } from '../firebase';
 
-export const AuthModal = ({ onClose }) => {
+export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [step, setStep] = useState(1); // 1: Login/Register, 2: Choose Role, 3: Choose SubRole
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
@@ -64,7 +64,10 @@ export const AuthModal = ({ onClose }) => {
         if (!tempUser) return;
         if (role === 'dealer') {
             setLoading(true);
-            createUserProfile(tempUser, 'dealer').then(onClose).catch(() => {
+            createUserProfile(tempUser, 'dealer').then(() => {
+                onRoleCreated?.('dealer', null);
+                onClose();
+            }).catch(() => {
                 setError("Ошибка при сохранении роли.");
                 setLoading(false);
             });
@@ -79,6 +82,7 @@ export const AuthModal = ({ onClose }) => {
         setLoading(true);
         try {
             await createUserProfile(tempUser, 'client', subRole);
+            onRoleCreated?.('client', subRole);
             onClose();
         } catch (err) {
             setError("Ошибка при сохранении.");

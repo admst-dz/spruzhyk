@@ -70,7 +70,15 @@ function App() {
     return (
         <>
             {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
-            {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+            {showAuth && (
+                <AuthModal
+                    onClose={() => setShowAuth(false)}
+                    onRoleCreated={(role, subRole) => {
+                        setUserRole(role);
+                        if (subRole) setClientSubRole(subRole);
+                    }}
+                />
+            )}
 
 
             {/* --- ЭКРАН: ГЛАВНАЯ СТРАНИЦА --- */}
