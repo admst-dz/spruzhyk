@@ -1,0 +1,72 @@
+name: Deploy to Production (Docker)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # Для PR — деплоить только если мерж (не просто закрытый PR)
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t spruzhyk-app:latest .
+
+      - name: Save Docker image to tar
+        run: docker save spruzhyk-app:latest | gzip > spruzhyk-app.tar.gz
+
+      - name: Copy image to server via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          port: 22
+          source: spruzhyk-app.tar.gz
+          target: /tmp/
+
+      - name: Deploy on server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+
+            CONTAINER_NAME="spruzhyk-app"
+            IMAGE_NAME="spruzhyk-app"
+
+            # Загружаем новый образ
+            docker load < /tmp/spruzhyk-app.tar.gz
+
+            # Останавливаем и удаляем старый контейнер (если есть)
+            docker stop "$CONTAINER_NAME" 2>/dev/null || true
+            docker rm "$CONTAINER_NAME" 2>/dev/null || true
+
+            # Запускаем новый контейнер
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --restart unless-stopped \
+              -p 80:80 \
+              "$IMAGE_NAME:latest"
+
+            # Чистим
+            rm -f /tmp/spruzhyk-app.tar.gz
+            docker image prune -f
+
+            echo "Deployment successful! Container status:"
+            docker ps | grep "$CONTAINER_NAME"
