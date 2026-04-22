@@ -1,59 +1,49 @@
-version: '3.8'
 services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    networks:
-      - app_network
-    depends_on:
-      - backend
-    environment:
-      - REACT_APP_API_URL=http://backend:4000
-
-  backend:
-    build: ./backend
-    ports:
-      - "4000:4000"
-    networks:
-      - app_network
-    depends_on:
-      - db
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
-      - UVICORN_HOST=0.0.0.0
-      - UVICORN_PORT=4000
-
   db:
-    image: postgres:15
+    image: public.ecr.aws/docker/library/postgres:15-alpine
+    pull_policy: if_not_present
+    container_name: spruzhuk_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: spruzhuk
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - app_network
-    ports:
-      - "5432:5432"
+      - spruzhuk_net
 
-  pgadmin:
-    image: dpage/pgadmin4
+  backend:
+    image: spruzhyk-backend:latest
+    container_name: spruzhuk_backend
+    restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "16543:80"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: spruzhuk
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    depends_on:
+      - db
     networks:
-      - app_network
+      - spruzhuk_net
+
+  frontend:
+    image: spruzhyk-api:latest
+    container_name: spruzhuk_app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - spruzhuk_net
+
+networks:
+  spruzhuk_net:
+    driver: bridge
 
 volumes:
   postgres_data:
-
-networks:
-  app_network:
-    driver: bridge
