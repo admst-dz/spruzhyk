@@ -7,7 +7,7 @@ app = FastAPI(title="Spruzhyk API", version="1.0.0")
 # Настройка CORS для связи с фронтендом
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # В проде заменить на домен фронта
+    allow_origins=["http://217.25.93.108"], # В проде заменить на домен фронта
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
