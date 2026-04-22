@@ -20,11 +20,11 @@ services:
     container_name: spruzhuk_backend
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: spruzhuk
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: rootpassword
+      DB_NAME: spruzhuk
+      DB_HOST: db
+      DB_PORT: 5432
     depends_on:
       - db
     networks:
