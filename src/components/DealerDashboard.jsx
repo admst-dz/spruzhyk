@@ -334,7 +334,7 @@ export const DealerDashboard = ({ onBack }) => {
         }
         if (activeTab === 'products' && currentUser) {
             setLoading(true);
-            fetchDealerProducts(currentUser.uid).then(data => {
+            fetchDealerProducts(currentUser.id).then(data => {
                 setProducts(data);
                 setLoading(false);
             });
@@ -355,7 +355,7 @@ export const DealerDashboard = ({ onBack }) => {
         setShowModal(false);
         setEditingProduct(null);
         if (currentUser) {
-            fetchDealerProducts(currentUser.uid).then(setProducts);
+            fetchDealerProducts(currentUser.id).then(setProducts);
         }
     };
 
@@ -368,7 +368,7 @@ export const DealerDashboard = ({ onBack }) => {
             {showModal && (
                 <ProductModal
                     product={editingProduct}
-                    dealerId={currentUser?.uid}
+                    dealerId={currentUser?.id}
                     onClose={() => { setShowModal(false); setEditingProduct(null); }}
                     onSaved={handleProductSaved}
                 />

@@ -1,83 +1,68 @@
 import axios from 'axios';
-import { auth } from './firebase';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
 });
 
-apiClient.interceptors.request.use(async (config) => {
-    const user = auth.currentUser;
-    if (user) {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
-    }
+apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 }, (error) => Promise.reject(error));
 
 // ─── Core API objects ─────────────────────────────────────────────────────────
 
-export const userApi = {
-    syncUser: async (userData) => apiClient.post('/users/', userData),
-    getUserProfile: async (userId) => apiClient.get(`/users/${userId}`),
+export const authApi = {
+    register: (data) => apiClient.post('/auth/register', data),
+    login: (data) => apiClient.post('/auth/login', data),
+    me: () => apiClient.get('/auth/me'),
 };
 
 export const orderApi = {
-    createOrder: async (orderData) => apiClient.post('/orders/', orderData),
-    getAllOrders: async (page = 1, size = 200) => apiClient.get(`/orders/all?page=${page}&size=${size}`),
-    getUserOrders: async (userId) => apiClient.get(`/orders/user/${userId}`),
-    updateStatus: async (orderId, status) => apiClient.patch(`/orders/${orderId}/status`, { status }),
-    claimGuest: async (uid, email) => apiClient.post('/orders/claim', { uid, email }),
+    createOrder: (orderData) => apiClient.post('/orders/', orderData),
+    getAllOrders: (page = 1, size = 200) => apiClient.get(`/orders/all?page=${page}&size=${size}`),
+    getUserOrders: (userId) => apiClient.get(`/orders/user/${userId}`),
+    updateStatus: (orderId, status) => apiClient.patch(`/orders/${orderId}/status`, { status }),
 };
 
 export const productApi = {
-    getAll: async () => apiClient.get('/products/'),
-    getByDealer: async (dealerId) => apiClient.get(`/products/?dealer_id=${dealerId}`),
-    create: async (data) => apiClient.post('/products/', data),
-    update: async (id, data) => apiClient.put(`/products/${id}`, data),
-    delete: async (id) => apiClient.delete(`/products/${id}`),
+    getAll: () => apiClient.get('/products/'),
+    getByDealer: (dealerId) => apiClient.get(`/products/?dealer_id=${dealerId}`),
+    create: (data) => apiClient.post('/products/', data),
+    update: (id, data) => apiClient.put(`/products/${id}`, data),
+    delete: (id) => apiClient.delete(`/products/${id}`),
 };
 
-// ─── User helpers ─────────────────────────────────────────────────────────────
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-export const getUserRole = async (uid) => {
-    try {
-        const { data } = await userApi.getUserProfile(uid);
-        return { role: data.role || null, subRole: data.sub_role || null };
-    } catch {
-        return { role: null, subRole: null };
-    }
+export const loginUser = async (email, password) => {
+    const { data } = await authApi.login({ email, password });
+    localStorage.setItem('token', data.access_token);
+    return data.user;
 };
 
-export const checkUserExists = async (uid) => {
-    try {
-        const { data } = await userApi.getUserProfile(uid);
-        return { exists: true, role: data.role || null, data: { subRole: data.sub_role || null } };
-    } catch (err) {
-        if (err.response?.status === 404) {
-            return { exists: false, role: null, data: null };
-        }
-        throw err;
-    }
-};
-
-export const createUserProfile = async (user, role, subRole = null) => {
-    return await userApi.syncUser({
-        uid: user.uid,
-        email: user.email,
-        display_name: user.displayName || '',
+export const registerUser = async (email, password, displayName, role, subRole) => {
+    const { data } = await authApi.register({
+        email,
+        password,
+        display_name: displayName || '',
         role,
-        sub_role: subRole,
+        sub_role: subRole || null,
     });
+    localStorage.setItem('token', data.access_token);
+    return data.user;
 };
 
-export const claimGuestOrders = async (uid, email) => {
+export const restoreSession = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
     try {
-        await orderApi.claimGuest(uid, email);
+        const { data } = await authApi.me();
+        return data;
     } catch {
-        // non-critical
+        localStorage.removeItem('token');
+        return null;
     }
 };
 
@@ -100,8 +85,8 @@ export const createOrderInDB = async (orderData) => {
     return String(data?.id || data);
 };
 
-export const fetchUserOrders = async (uid) => {
-    const { data } = await orderApi.getUserOrders(uid);
+export const fetchUserOrders = async (userId) => {
+    const { data } = await orderApi.getUserOrders(userId);
     return (data || []).map(normalizeOrder);
 };
 

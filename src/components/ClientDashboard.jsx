@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
-import { auth } from '../firebase';
 import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
 
 const TabBtn = ({ active, children, onClick }) => (
@@ -61,7 +60,7 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
     useEffect(() => {
         if (activeTab === 'orders' && currentUser) {
             setOrdersLoading(true);
-            fetchUserOrders(currentUser.uid, currentUser.email).then(data => {
+            fetchUserOrders(currentUser.id).then(data => {
                 data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
                 setOrders(data);
                 setOrdersLoading(false);
@@ -91,7 +90,7 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
     const handleApprove = async () => {
         try {
             const id = await createOrderInDB({
-                user_id: currentUser?.uid || null,
+                user_id: currentUser?.id || null,
                 user_email: currentUser?.email || '',
                 product_name: cartItem.productName,
                 configuration: {
@@ -133,7 +132,7 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
                             <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
                         </div>
                         <div className="hidden md:flex flex-col">
-                            <span className="text-sm font-bold text-white">{currentUser?.displayName || currentUser?.email?.split('@')[0]}</span>
+                            <span className="text-sm font-bold text-white">{currentUser?.display_name || currentUser?.email?.split('@')[0]}</span>
                             <span className="text-[10px] text-gray-500 uppercase tracking-widest">{currentUser?.email}</span>
                         </div>
                     </div>

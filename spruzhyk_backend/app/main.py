@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-from app.api.v1 import users, products, orders
+from app.api.v1 import users, products, orders, auth
 from app.database import get_db
 
 # --- 1. SENTRY (Мониторинг ошибок) ---
@@ -61,5 +61,6 @@ async def health_check(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=503, detail="Database connection failed")
 
 # Подключаем роутеры
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])

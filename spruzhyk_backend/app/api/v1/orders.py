@@ -5,6 +5,7 @@ from app.database import get_db
 from app.schemas.order import OrderCreate, OrderResponse
 from app.services.order_service import OrderService
 from app.crud import order as crud_order
+from app.core.deps import get_current_user
 
 router = APIRouter()
 
@@ -13,21 +14,28 @@ router = APIRouter()
 async def create_order(
         order: OrderCreate,
         db: AsyncSession = Depends(get_db),
-        # TODO: dependency получения текущего юзера из токена
-        current_user_id: str = "fake-firebase-uid"
+        current_user=Depends(get_current_user),
 ):
-    return await OrderService.create_new_order(db, order, current_user_id)
+    return await OrderService.create_new_order(db, order, current_user.id)
 
 
-# --- ПАГИНАЦИЯ И ЗАКРЫТИЕ ОПАСНЫХ ЭНДПОИНТОВ ---
 @router.get("/all", response_model=Page[OrderResponse])
 async def get_all_orders(
         db: AsyncSession = Depends(get_db),
-        # ЗАЩИТА: Сюда пускаем только админов или Владельца СР
-        current_role: str = "client"
+        current_user=Depends(get_current_user),
 ):
-    if current_role not in ["admin", "owner"]:
+    if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
-
     orders = await crud_order.get_all(db)
-    return paginate(orders)  
+    return paginate(orders)
+
+
+@router.get("/user/{user_id}", response_model=list[OrderResponse])
+async def get_user_orders(
+        user_id: str,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user),
+):
+    if current_user.id != user_id and current_user.role not in ["admin", "dealer", "owner"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return await crud_order.get_orders_by_user(db, user_id)

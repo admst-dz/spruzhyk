@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Experience } from './components/Experience'
 import { Interface, ZoomControls } from './components/Interface'
@@ -8,9 +8,7 @@ import { DealerDashboard } from './components/DealerDashboard'
 import { AuthModal } from './components/AuthModal'
 import { ClientDashboard } from './components/ClientDashboard' // ПРОВЕРЬТЕ ЭТОТ ИМПОРТ
 import { useConfigurator } from './store'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase'
-import { getUserRole, claimGuestOrders } from './api'
+import { restoreSession } from './api'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
 
@@ -18,7 +16,6 @@ function App() {
     const [screen, setScreen] = useState('home');
     const [showAuth, setShowAuth] = useState(false);
     const [pendingSuccessToast, setPendingSuccessToast] = useState(false);
-    const authInitialized = useRef(false);
 
     const {
         activeProduct,
@@ -53,39 +50,17 @@ function App() {
 
     // ... остальной код (без изменений с прошлого рабочего варианта)
 
-    // --- ЛОГИКА: СЛУШАТЕЛЬ FIREBASE (ВОШЕЛ/ВЫШЕЛ) ---
+    // --- ЛОГИКА: ВОССТАНОВЛЕНИЕ СЕССИИ ПО JWT ---
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            // Спиннер только при первой проверке (загрузка страницы),
-            // чтобы не перекрывать модалку авторизации при входе
-            const isFirstCheck = !authInitialized.current;
-            if (isFirstCheck) setAuthLoading(true);
-
+        setAuthLoading(true);
+        restoreSession().then((user) => {
             if (user) {
-                try {
-                    const { role, subRole } = await getUserRole(user.uid);
-                    if (role) {
-                        setCurrentUser(user);
-                        setUserRole(role);
-                        if (subRole) setClientSubRole(subRole);
-                        await claimGuestOrders(user.uid, user.email);
-                    }
-                    // Нет профиля в БД — AuthModal сам разберётся (регистрация в процессе)
-                } catch (e) {
-                    console.error('getUserRole failed:', e);
-                }
-            } else {
-                setCurrentUser(null);
-                setUserRole(null);
+                setCurrentUser(user);
+                setUserRole(user.role);
+                if (user.sub_role) setClientSubRole(user.sub_role);
             }
-
-            if (isFirstCheck) {
-                setAuthLoading(false);
-                authInitialized.current = true;
-            }
-        });
-        return () => unsubscribe();
-    }, [setCurrentUser, setUserRole, setAuthLoading]);
+        }).finally(() => setAuthLoading(false));
+    }, [setCurrentUser, setUserRole, setClientSubRole, setAuthLoading]);
 
     if (authLoading) {
         return (

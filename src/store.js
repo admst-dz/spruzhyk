@@ -1,6 +1,4 @@
 import { create } from 'zustand'
-import { signOut } from 'firebase/auth'
-import { auth } from './firebase'
 
 let _webglCanvas = null
 export const registerWebGLCanvas = (el) => { _webglCanvas = el }
@@ -43,7 +41,7 @@ export const useConfigurator = create((set) => ({
     setClientSubRole: (subRole) => set({ clientSubRole: subRole }),
     setAuthLoading: (isLoading) => set({ authLoading: isLoading }),
     logout: () => {
-        signOut(auth).catch(() => {});
+        localStorage.removeItem('token');
         set({ currentUser: null, userRole: null, clientSubRole: 'PL', cartItem: null });
     },
 
