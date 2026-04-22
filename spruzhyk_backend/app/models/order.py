@@ -9,6 +9,8 @@ import uuid
 class Order(Base):
     __tablename__ = "orders"
     id = Column(UUID, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"), index=True) # ИНДЕКС ДЛЯ БЫСТРОГО ПОИСКА ЗАКАЗОВ ЮЗЕРА
-    status = Column(String, default="new", index=True) # ИНДЕКС ДЛЯ ФИЛЬТРА ДИЛЕРА (Где status == 'new')
-    created_at = Column(DateTime, server_default=func.now(), index=True) # ИНДЕКС ДЛЯ СОРТИРОВКИ ПО ДАТЕ
+    user_id = Column(String, ForeignKey("users.id"), index=True)
+    status = Column(String, default="new", index=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    user = relationship("User", back_populates="orders")
