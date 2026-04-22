@@ -11,36 +11,57 @@ on:
       - main
 
 jobs:
-  deploy:
+  changes:
     if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'src/**'
+              - 'Dockerfile'
+              - 'nginx.conf'
+              - 'package*.json'
+              - 'vite.config.*'
+              - 'index.html'
+              - 'postcss.config.*'
+              - 'tailwind.config.*'
+              - 'eslint.config.*'
+              - 'docker-compose.yml'
+            backend:
+              - 'spruzhyk_backend/**'
+              - 'docker-compose.yml'
+
+  deploy-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Build frontend Docker image
         run: docker build -t spruzhyk-api:latest -f Dockerfile .
 
-      - name: Build backend Docker image
-        run: docker build -t spruzhyk-backend:latest ./spruzhyk_backend
+      - name: Save frontend image to tar
+        run: docker save spruzhyk-api:latest | gzip > spruzhyk-api.tar.gz
 
-      - name: Save Docker images to tar
-        run: |
-          docker save spruzhyk-api:latest | gzip > spruzhyk-api.tar.gz
-          docker save spruzhyk-backend:latest | gzip > spruzhyk-backend.tar.gz
-
-      - name: Copy images and compose to server via SCP
+      - name: Copy image and compose to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
           username: ${{ secrets.PROD_SERVER_USER }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           port: 22
-          source: "spruzhyk-api.tar.gz,spruzhyk-backend.tar.gz,docker-compose.yml"
-          target: /tmp/spruzhyk/
+          source: "spruzhyk-api.tar.gz,docker-compose.yml"
+          target: /tmp/spruzhyk-frontend/
 
-      - name: Deploy on server via SSH
+      - name: Deploy frontend on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
@@ -50,23 +71,55 @@ jobs:
           script_stop: true
           script: |
             set -e
-
-            docker load < /tmp/spruzhyk/spruzhyk-api.tar.gz
-            docker load < /tmp/spruzhyk/spruzhyk-backend.tar.gz
-
+            docker load < /tmp/spruzhyk-frontend/spruzhyk-api.tar.gz
             mkdir -p /opt/spruzhyk
-
-            # Всегда перезаписываем compose — убеждаемся что на сервере актуальная версия
-            \cp -f /tmp/spruzhyk/docker-compose.yml /opt/spruzhyk/docker-compose.yml
-            echo "--- compose in use ---"
-            cat /opt/spruzhyk/docker-compose.yml
-
+            \cp -f /tmp/spruzhyk-frontend/docker-compose.yml /opt/spruzhyk/docker-compose.yml
             cd /opt/spruzhyk
-            # БД не пересоздаём — только app и backend
-            docker compose up -d --force-recreate --no-deps backend frontend
-
-            rm -rf /tmp/spruzhyk
+            docker compose up -d --force-recreate --no-deps frontend
+            rm -rf /tmp/spruzhyk-frontend
             docker image prune -f
+            echo "Frontend deployment successful!"
+            docker compose ps
 
-            echo "Deployment successful!"
+  deploy-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend Docker image
+        run: docker build -t spruzhyk-backend:latest ./spruzhyk_backend
+
+      - name: Save backend image to tar
+        run: docker save spruzhyk-backend:latest | gzip > spruzhyk-backend.tar.gz
+
+      - name: Copy image and compose to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          port: 22
+          source: "spruzhyk-backend.tar.gz,docker-compose.yml"
+          target: /tmp/spruzhyk-backend/
+
+      - name: Deploy backend on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+            docker load < /tmp/spruzhyk-backend/spruzhyk-backend.tar.gz
+            mkdir -p /opt/spruzhyk
+            \cp -f /tmp/spruzhyk-backend/docker-compose.yml /opt/spruzhyk/docker-compose.yml
+            cd /opt/spruzhyk
+            docker compose up -d --force-recreate --no-deps backend
+            rm -rf /tmp/spruzhyk-backend
+            docker image prune -f
+            echo "Backend deployment successful!"
             docker compose ps
