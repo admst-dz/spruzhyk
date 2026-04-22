@@ -46,4 +46,8 @@ networks:
     driver: bridge
 
 volumes:
+<<<<<<< Updated upstream
   postgres_data:
+=======
+  postgres_data:
+>>>>>>> Stashed changes
