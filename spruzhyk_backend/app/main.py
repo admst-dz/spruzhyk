@@ -1,3 +1,4 @@
+import os
 import sentry_sdk
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -13,11 +14,9 @@ from app.api.v1 import users, products, orders
 from app.database import get_db
 
 # --- 1. SENTRY (Мониторинг ошибок) ---
-sentry_sdk.init(
-    dsn="ТВОЙ_DSN_ИЗ_SENTRY", # Получи на sentry.io
-    traces_sample_rate=1.0,
-    environment="production"
-)
+_sentry_dsn = os.getenv("SENTRY_DSN", "")
+if _sentry_dsn:
+    sentry_sdk.init(dsn=_sentry_dsn, traces_sample_rate=1.0, environment="production")
 
 # --- 2. ANTI-SPAM (Rate Limiter) ---
 limiter = Limiter(key_func=get_remote_address)
