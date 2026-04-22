@@ -17,6 +17,7 @@ export const authApi = {
     register: (data) => apiClient.post('/auth/register', data),
     login: (data) => apiClient.post('/auth/login', data),
     me: () => apiClient.get('/auth/me'),
+    updateRole: (role, sub_role) => apiClient.patch('/auth/me/role', { role, sub_role }),
 };
 
 export const orderApi = {
@@ -52,6 +53,11 @@ export const registerUser = async (email, password, displayName, role, subRole) 
     });
     localStorage.setItem('token', data.access_token);
     return data.user;
+};
+
+export const updateUserRole = async (role, subRole) => {
+    const { data } = await authApi.updateRole(role, subRole || null);
+    return data;
 };
 
 export const restoreSession = async () => {
