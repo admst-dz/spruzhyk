@@ -21,7 +21,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         try {
             const { exists, role, data } = await checkUserExists(user.uid);
             if (exists) {
-                onRoleCreated?.(role || 'client', data?.subRole || null);
+                onRoleCreated?.(user, role || 'client', data?.subRole || null);
                 onClose();
             } else if (isRegistering || allowRoleSelection) {
                 setTempUser(user);
@@ -79,7 +79,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         if (role === 'dealer') {
             setLoading(true);
             createUserProfile(tempUser, 'dealer').then(() => {
-                onRoleCreated?.('dealer', null);
+                onRoleCreated?.(tempUser, 'dealer', null);
                 onClose();
             }).catch(() => {
                 setError("Ошибка при сохранении роли.");
@@ -95,7 +95,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         setLoading(true);
         try {
             await createUserProfile(tempUser, 'client', subRole);
-            onRoleCreated?.('client', subRole);
+            onRoleCreated?.(tempUser, 'client', subRole);
             onClose();
         } catch (err) {
             setError("Ошибка при сохранении.");

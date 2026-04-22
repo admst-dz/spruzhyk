@@ -62,12 +62,15 @@ function App() {
             if (isFirstCheck) setAuthLoading(true);
 
             if (user) {
-                setCurrentUser(user);
                 try {
                     const { role, subRole } = await getUserRole(user.uid);
-                    setUserRole(role || null);
-                    if (subRole) setClientSubRole(subRole);
-                    await claimGuestOrders(user.uid, user.email);
+                    if (role) {
+                        setCurrentUser(user);
+                        setUserRole(role);
+                        if (subRole) setClientSubRole(subRole);
+                        await claimGuestOrders(user.uid, user.email);
+                    }
+                    // Нет профиля в БД — AuthModal сам разберётся (регистрация в процессе)
                 } catch (e) {
                     console.error('getUserRole failed:', e);
                 }
@@ -98,7 +101,8 @@ function App() {
             {showAuth && (
                 <AuthModal
                     onClose={() => setShowAuth(false)}
-                    onRoleCreated={(role, subRole) => {
+                    onRoleCreated={(user, role, subRole) => {
+                        setCurrentUser(user);
                         setUserRole(role);
                         if (subRole) setClientSubRole(subRole);
                     }}
