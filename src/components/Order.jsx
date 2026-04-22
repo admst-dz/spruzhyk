@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useConfigurator } from "../store";
-import { createOrderInDB } from '../api';
+import { orderApi } from '../api';
 import { Canvas } from '@react-three/fiber';
 import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { Notebook } from './Notebook';
@@ -43,7 +43,7 @@ export const Order = ({ onBack, onSuccess }) => {
         }
         setLoading(true);
         try {
-            await createOrderInDB({
+            await orderApi.createOrder({
                 user_id: null,
                 user_email: formData.email || '',
                 product_name: 'Ежедневник',
