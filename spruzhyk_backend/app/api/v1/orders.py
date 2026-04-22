@@ -1,22 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app import crud, models, schemas
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 from app.database import get_db
+from app.schemas.order import OrderCreate, OrderResponse
+from app.crud import order as crud_order
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Order)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    return crud.create_order(db=db, order=order)
+@router.post("/", response_model=OrderResponse)
+async def create_new_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
+    return await crud_order.create_order(db=db, order=order)
 
-@router.get("/", response_model=list[schemas.Order])
-def read_orders(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    orders = crud.get_orders(db, skip=skip, limit=limit)
-    return orders
-
-@router.get("/{order_id}", response_model=schemas.Order)
-def read_order(order_id: int, db: Session = Depends(get_db)):
-    db_order = crud.get_order(db, order_id=order_id)
-    if db_order is None:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return db_order
+@router.get("/user/{user_id}", response_model=List[OrderResponse])
+async def read_user_orders(user_id: str, db: AsyncSession = Depends(get_db)):
+    return await crud_order.get_orders_by_user(db=db, user_id=user_id)

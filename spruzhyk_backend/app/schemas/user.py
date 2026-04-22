@@ -1,14 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import Optional
 
-class UserBase(BaseModel):
-    name: str
-    email: str
 
-class UserCreate(UserBase):
-    pass
+class UserCreate(BaseModel):
+    id: str
+    email: EmailStr
+    display_name: Optional[str] = None
+    role: Optional[str] = "client"
 
-class User(UserBase):
-    id: int
 
-    class Config:
-        orm_mode = True
+class UserResponse(UserCreate):
+    token_balance: float
+
+    model_config = ConfigDict(from_attributes=True)

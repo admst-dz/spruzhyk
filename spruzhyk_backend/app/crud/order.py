@@ -1,16 +1,15 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.models.order import Order
 from app.schemas.order import OrderCreate
 
-def get_order(db: Session, order_id: int):
-    return db.query(Order).filter(Order.id == order_id).first()
-
-def get_orders(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Order).offset(skip).limit(limit).all()
-
-def create_order(db: Session, order: OrderCreate):
-    db_order = Order(user_id=order.user_id, product_id=order.product_id, status=order.status)
+async def create_order(db: AsyncSession, order: OrderCreate):
+    db_order = Order(**order.model_dump())
     db.add(db_order)
-    db.commit()
-    db.refresh(db_order)
+    await db.commit()
+    await db.refresh(db_order)
     return db_order
+
+async def get_orders_by_user(db: AsyncSession, user_id: str):
+    result = await db.execute(select(Order).where(Order.user_id == user_id))
+    return result.scalars().all()
