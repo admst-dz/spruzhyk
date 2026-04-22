@@ -21,7 +21,7 @@ class OrderService:
 
         new_order = await crud_order.create_order(db, order_data)
 
-        await db.commit()ß
+        await db.commit()
 
         # 5. TODO: Отправить уведомление Дилеру или в Битрикс24
 
