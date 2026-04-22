@@ -1,14 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
+from uuid import UUID
 
-class ProductBase(BaseModel):
+class ProductCreate(BaseModel):
     name: str
-    price: float
+    type_slug: str
+    price_rub: float
 
-class ProductCreate(ProductBase):
-    pass
+class ProductResponse(ProductCreate):
+    id: UUID
+    is_active: bool
 
-class Product(ProductBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
