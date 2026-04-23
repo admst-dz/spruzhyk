@@ -22,7 +22,11 @@ export const authApi = {
 
 export const orderApi = {
     createOrder: (orderData) => apiClient.post('/orders/', orderData),
-    getAllOrders: (page = 1, size = 200) => apiClient.get(`/orders/all?page=${page}&size=${size}`),
+    getAllOrders: (page = 1, size = 200, dealerId = null) => {
+        const params = new URLSearchParams({ page, size });
+        if (dealerId) params.set('dealer_id', dealerId);
+        return apiClient.get(`/orders/all?${params}`);
+    },
     getUserOrders: (userId) => apiClient.get(`/orders/user/${userId}`),
     updateStatus: (orderId, status) => apiClient.patch(`/orders/${orderId}/status`, { status }),
 };
@@ -96,8 +100,8 @@ export const fetchUserOrders = async (userId) => {
     return (data || []).map(normalizeOrder);
 };
 
-export const fetchAllOrders = async () => {
-    const { data } = await orderApi.getAllOrders();
+export const fetchAllOrders = async (dealerId = null) => {
+    const { data } = await orderApi.getAllOrders(1, 200, dealerId);
     const list = data?.items || data || [];
     return list.map(normalizeOrder);
 };

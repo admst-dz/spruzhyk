@@ -326,7 +326,7 @@ export const DealerDashboard = ({ onBack }) => {
     useEffect(() => {
         if (activeTab === 'orders') {
             setLoading(true);
-            fetchAllOrders().then(data => {
+            fetchAllOrders(currentUser?.id).then(data => {
                 data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
                 setOrders(data);
                 setLoading(false);
