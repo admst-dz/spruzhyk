@@ -266,17 +266,17 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
                                 orders.map((order, i) => (
                                     <div
                                         key={order.id}
-                                        className={`px-6 py-5 flex items-center gap-4 hover:bg-white/[0.03] transition-colors ${i !== orders.length - 1 ? 'border-b border-white/5' : ''}`}
+                                        className={`px-4 md:px-6 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:bg-white/[0.03] transition-colors ${i !== orders.length - 1 ? 'border-b border-white/5' : ''}`}
                                     >
-                                        <div className="flex flex-col min-w-[80px]">
+                                        <div className="flex items-center justify-between sm:block sm:min-w-[80px]">
                                             <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
-                                            <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
+                                            <span className="text-[10px] text-gray-500 sm:mt-0.5 sm:block">{order.date}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-sm text-white truncate">{order.product}</p>
                                             <p className="text-xs text-gray-500 truncate">{order.design}</p>
                                         </div>
-                                        <div className="flex items-center gap-4 shrink-0">
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
                                             <span className="font-bold text-white text-sm">{order.price} BYN</span>
                                             <OrderStatus status={order.status} />
                                         </div>
