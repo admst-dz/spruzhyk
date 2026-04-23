@@ -374,8 +374,8 @@ export const DealerDashboard = ({ onBack }) => {
                 />
             )}
 
-            {/* SIDEBAR */}
-            <aside className="w-60 shrink-0 flex flex-col border-r border-white/5 bg-white/[0.02] backdrop-blur-xl z-20">
+            {/* SIDEBAR — только на desktop */}
+            <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/5 bg-white/[0.02] backdrop-blur-xl z-20">
                 <div className="p-6 border-b border-white/5">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="w-8 h-8 bg-white/10 border border-white/10 rounded-[10px] flex items-center justify-center">
@@ -417,8 +417,18 @@ export const DealerDashboard = ({ onBack }) => {
                 </div>
             </aside>
 
+            {/* MOBILE HEADER */}
+            <div className="md:hidden fixed top-0 left-0 right-0 z-30 px-4 py-3 bg-[#0B0F19]/95 backdrop-blur-xl border-b border-white/5 flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Дилер</span>
+                <span className="text-xs text-gray-500 truncate ml-auto">{currentUser?.email}</span>
+            </div>
+
             {/* MAIN */}
-            <main className="flex-1 overflow-y-auto p-8">
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 pt-16 md:pt-8">
 
                 {/* ── PRODUCTS TAB ── */}
                 {activeTab === 'products' && (
@@ -518,14 +528,14 @@ export const DealerDashboard = ({ onBack }) => {
                 {/* ── ORDERS TAB ── */}
                 {activeTab === 'orders' && (
                     <div>
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                             <div>
                                 <h2 className="text-xl font-bold uppercase tracking-widest text-white">Управление заказами</h2>
                                 <p className="text-xs text-gray-500 mt-1">Все входящие заявки от клиентов</p>
                             </div>
                             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
                                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]"></div>
-                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Firebase Live</span>
+                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Live</span>
                             </div>
                         </div>
 
@@ -544,26 +554,49 @@ export const DealerDashboard = ({ onBack }) => {
                                 orders.map((order, i) => (
                                     <div
                                         key={order.id}
-                                        className={`px-6 py-5 grid grid-cols-[80px_1fr_1fr_1fr_auto] gap-4 items-center hover:bg-white/[0.03] transition-colors ${
+                                        className={`px-4 md:px-6 py-4 md:py-5 flex flex-col md:grid md:grid-cols-[80px_1fr_1fr_1fr_auto] gap-3 md:gap-4 hover:bg-white/[0.03] transition-colors ${
                                             i !== orders.length - 1 ? 'border-b border-white/5' : ''
                                         }`}
                                     >
-                                        <div className="flex flex-col">
+                                        {/* Mobile: row with id+date and status */}
+                                        <div className="flex items-center justify-between md:hidden">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
+                                                <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
+                                            </div>
+                                            {order.status === 'new' ? (
+                                                <button
+                                                    onClick={() => handleSendToProduction(order.id)}
+                                                    className="px-3 py-1.5 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all"
+                                                >
+                                                    В производство →
+                                                </button>
+                                            ) : (
+                                                <StatusBadge status={order.status} />
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col min-w-0 md:hidden">
+                                            <span className="font-bold text-sm text-white truncate">{order.userEmail}</span>
+                                            <span className="text-xs text-gray-500 truncate">{order.product} · {order.price} BYN</span>
+                                        </div>
+
+                                        {/* Desktop layout */}
+                                        <div className="hidden md:flex flex-col">
                                             <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
                                             <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
                                         </div>
-                                        <div className="flex flex-col min-w-0">
+                                        <div className="hidden md:flex flex-col min-w-0">
                                             <span className="font-bold text-sm text-white truncate">{order.userEmail}</span>
                                             <span className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-wider">{order.role}</span>
                                         </div>
-                                        <div className="flex flex-col min-w-0">
+                                        <div className="hidden md:flex flex-col min-w-0">
                                             <span className="font-bold text-sm text-white truncate">{order.product}</span>
                                             <span className="text-xs text-gray-500 truncate">{order.design}</span>
                                         </div>
-                                        <div>
+                                        <div className="hidden md:block">
                                             <span className="font-bold text-white">{order.price} BYN</span>
                                         </div>
-                                        <div className="flex justify-end">
+                                        <div className="hidden md:flex justify-end">
                                             {order.status === 'new' ? (
                                                 <button
                                                     onClick={() => handleSendToProduction(order.id)}
@@ -582,6 +615,36 @@ export const DealerDashboard = ({ onBack }) => {
                     </div>
                 )}
             </main>
+
+            {/* BOTTOM NAV — только на mobile */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-white/5 flex items-center px-2 pb-safe">
+                {[
+                    { id: 'products', label: 'Продукты', icon: (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="7" height="7"/><rect x="15" y="3" width="7" height="7"/><rect x="2" y="14" width="7" height="7"/><rect x="15" y="14" width="7" height="7"/></svg>
+                    )},
+                    { id: 'orders', label: 'Заказы', icon: (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+                    )},
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
+                            activeTab === tab.id ? 'text-white' : 'text-gray-600'
+                        }`}
+                    >
+                        {tab.icon}
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
+                    </button>
+                ))}
+                <button
+                    onClick={() => { logout(); onBack(); }}
+                    className="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-gray-600 hover:text-red-400 transition-colors"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Выйти</span>
+                </button>
+            </nav>
         </div>
     );
 };

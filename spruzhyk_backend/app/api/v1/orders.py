@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_pagination import Page, paginate
 from app.database import get_db
-from app.schemas.order import OrderCreate, OrderResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
 from app.services.order_service import OrderService
 from app.crud import order as crud_order
 from app.core.deps import get_current_user
@@ -39,3 +39,18 @@ async def get_user_orders(
     if current_user.id != user_id and current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
     return await crud_order.get_orders_by_user(db, user_id)
+
+
+@router.patch("/{order_id}/status", response_model=OrderResponse)
+async def update_order_status(
+        order_id: str,
+        status_data: OrderStatusUpdate,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "dealer", "owner"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    order = await crud_order.update_status(db, order_id, status_data.status)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
