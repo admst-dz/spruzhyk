@@ -19,6 +19,7 @@ class Order(Base):
     total_price = Column(Float, nullable=True)
     currency = Column(String, default='BYN')
     is_guest = Column(Boolean, default=False)
+    stage_history = Column(JSONB, default=list, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
 

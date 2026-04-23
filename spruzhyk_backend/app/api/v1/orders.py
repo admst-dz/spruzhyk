@@ -50,7 +50,7 @@ async def update_order_status(
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
-    order = await crud_order.update_status(db, order_id, status_data.status)
+    order = await crud_order.update_status(db, order_id, status_data.status, status_data.comment)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order

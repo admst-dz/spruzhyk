@@ -15,6 +15,73 @@ const TabBtn = ({ active, children, onClick }) => (
     </button>
 );
 
+const ORDER_STAGES = [
+    { key: 'new',         label: 'Ожидает',        icon: '🕐' },
+    { key: 'production',  label: 'Производство',    icon: '🏭' },
+    { key: 'processing',  label: 'Обработка',       icon: '⚙️' },
+    { key: 'in_delivery', label: 'Доставка',        icon: '🚚' },
+    { key: 'done',        label: 'Готово',          icon: '✅' },
+];
+
+const STAGE_INDEX = Object.fromEntries(ORDER_STAGES.map((s, i) => [s.key, i]));
+
+const OrderProgressBar = ({ status, stageHistory = [] }) => {
+    const currentIdx = STAGE_INDEX[status] ?? 0;
+    const historyMap = {};
+    stageHistory.forEach(h => { historyMap[h.status] = h; });
+
+    return (
+        <div className="pt-4 pb-2">
+            {/* Steps */}
+            <div className="relative flex items-start">
+                {/* Connecting line */}
+                <div className="absolute top-4 left-0 right-0 h-px bg-white/10 mx-8" style={{ zIndex: 0 }} />
+                {ORDER_STAGES.map((stage, idx) => {
+                    const isDone = idx < currentIdx;
+                    const isCurrent = idx === currentIdx;
+                    const entry = historyMap[stage.key];
+                    return (
+                        <div key={stage.key} className="flex-1 flex flex-col items-center gap-2 relative z-10">
+                            {/* Circle */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all text-sm
+                                ${isDone ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400'
+                                    : isCurrent ? 'bg-indigo-500/30 border-indigo-400 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                                    : 'bg-white/5 border-white/15 text-gray-600'}`}
+                            >
+                                {isDone ? (
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                ) : (
+                                    <span className="text-[10px]">{stage.icon}</span>
+                                )}
+                            </div>
+                            {/* Label */}
+                            <span className={`text-[9px] font-bold uppercase tracking-wider text-center leading-tight
+                                ${isDone ? 'text-emerald-400' : isCurrent ? 'text-indigo-300' : 'text-gray-600'}`}>
+                                {stage.label}
+                            </span>
+                            {/* Timestamp + comment */}
+                            {entry && (
+                                <div className="flex flex-col items-center gap-0.5 max-w-[80px]">
+                                    <span className="text-[8px] text-gray-500 text-center">
+                                        {new Date(entry.updated_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                                    </span>
+                                    {entry.comment && (
+                                        <span className="text-[8px] text-gray-400 text-center italic leading-tight line-clamp-2">
+                                            {entry.comment}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const OrderStatus = ({ status }) => {
     const s = {
         processing: { text: 'В обработке', color: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
@@ -37,6 +104,7 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
+    const [expandedOrders, setExpandedOrders] = useState(new Set());
     const [isGenerating, setIsGenerating] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [products, setProducts] = useState([]);
@@ -263,25 +331,49 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
                                     <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Нет заказов</p>
                                 </div>
                             ) : (
-                                orders.map((order, i) => (
-                                    <div
-                                        key={order.id}
-                                        className={`px-4 md:px-6 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:bg-white/[0.03] transition-colors ${i !== orders.length - 1 ? 'border-b border-white/5' : ''}`}
-                                    >
-                                        <div className="flex items-center justify-between sm:block sm:min-w-[80px]">
-                                            <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
-                                            <span className="text-[10px] text-gray-500 sm:mt-0.5 sm:block">{order.date}</span>
+                                orders.map((order, i) => {
+                                    const isExpanded = expandedOrders.has(order.id);
+                                    const toggleExpand = () => setExpandedOrders(prev => {
+                                        const next = new Set(prev);
+                                        next.has(order.id) ? next.delete(order.id) : next.add(order.id);
+                                        return next;
+                                    });
+                                    return (
+                                        <div
+                                            key={order.id}
+                                            className={`transition-colors ${i !== orders.length - 1 ? 'border-b border-white/5' : ''}`}
+                                        >
+                                            <div
+                                                className="px-4 md:px-6 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:bg-white/[0.03] cursor-pointer"
+                                                onClick={toggleExpand}
+                                            >
+                                                <div className="flex items-center justify-between sm:block sm:min-w-[80px]">
+                                                    <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
+                                                    <span className="text-[10px] text-gray-500 sm:mt-0.5 sm:block">{order.date}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-sm text-white truncate">{order.product}</p>
+                                                    <p className="text-xs text-gray-500 truncate">{order.design}</p>
+                                                </div>
+                                                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                                                    <span className="font-bold text-white text-sm">{order.price} BYN</span>
+                                                    <OrderStatus status={order.status} />
+                                                    <svg
+                                                        width="14" height="14" viewBox="0 0 14 14" fill="none"
+                                                        className={`text-gray-500 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                                                    >
+                                                        <path d="M2 5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            {isExpanded && (
+                                                <div className="px-4 md:px-6 pb-5 border-t border-white/5 bg-white/[0.02]">
+                                                    <OrderProgressBar status={order.status} stageHistory={order.stageHistory} />
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-sm text-white truncate">{order.product}</p>
-                                            <p className="text-xs text-gray-500 truncate">{order.design}</p>
-                                        </div>
-                                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                                            <span className="font-bold text-white text-sm">{order.price} BYN</span>
-                                            <OrderStatus status={order.status} />
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>

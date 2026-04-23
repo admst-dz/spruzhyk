@@ -1,13 +1,15 @@
-name: Deploy to Production (Docker)
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   changes:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -28,93 +30,57 @@ jobs:
               - 'postcss.config.*'
               - 'tailwind.config.*'
               - 'eslint.config.*'
-              - 'docker-compose.yml'
             backend:
               - 'spruzhyk_backend/**'
-              - 'docker-compose.yml'
 
-  deploy-frontend:
+  build-frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build frontend Docker image
-        run: docker build -t spruzhyk-api:latest -f Dockerfile .
-
-      - name: Save frontend image to tar
-        run: docker save spruzhyk-api:latest | gzip > spruzhyk-api.tar.gz
-
-      - name: Copy image and compose to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          source: "spruzhyk-api.tar.gz,docker-compose.yml"
-          target: /tmp/spruzhyk-frontend/
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy frontend on server
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
-            docker load < /tmp/spruzhyk-frontend/spruzhyk-api.tar.gz
-            mkdir -p /opt/spruzhyk
-            \cp -f /tmp/spruzhyk-frontend/docker-compose.yml /opt/spruzhyk/docker-compose.yml
-            cd /opt/spruzhyk
-            docker compose up -d --force-recreate --no-deps frontend
-            rm -rf /tmp/spruzhyk-frontend
-            docker image prune -f
-            echo "Frontend deployment successful!"
-            docker compose ps
+          context: .
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache,mode=max
 
-  deploy-backend:
+  build-backend:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend Docker image
-        run: docker build -t spruzhyk-backend:latest ./spruzhyk_backend
-
-      - name: Save backend image to tar
-        run: docker save spruzhyk-backend:latest | gzip > spruzhyk-backend.tar.gz
-
-      - name: Copy image and compose to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          source: "spruzhyk-backend.tar.gz,docker-compose.yml"
-          target: /tmp/spruzhyk-backend/
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy backend on server
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
-            docker load < /tmp/spruzhyk-backend/spruzhyk-backend.tar.gz
-            mkdir -p /opt/spruzhyk
-            \cp -f /tmp/spruzhyk-backend/docker-compose.yml /opt/spruzhyk/docker-compose.yml
-            cd /opt/spruzhyk
-            docker compose up -d --force-recreate --no-deps backend
-            rm -rf /tmp/spruzhyk-backend
-            docker image prune -f
-            echo "Backend deployment successful!"
-            docker compose ps
+          context: ./spruzhyk_backend
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-backend:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache,mode=max

@@ -2,20 +2,74 @@ import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
 import { fetchAllOrders, updateOrderStatus, fetchDealerProducts, saveProduct, updateProduct, deleteProduct } from '../api';
 
-const statusConfig = {
-    new:        { text: 'Новый',          color: 'bg-white/10 text-gray-400 border-white/10' },
-    production: { text: 'В производстве', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' },
-    processing: { text: 'В обработке',    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    in_delivery:{ text: 'Доставляется',   color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-    done:       { text: 'Готово',         color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-};
+const ORDER_STAGES = [
+    { key: 'new',         text: 'Новый',          color: 'bg-white/10 text-gray-400 border-white/10',            icon: '🕐' },
+    { key: 'production',  text: 'В производстве', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', icon: '🏭' },
+    { key: 'processing',  text: 'В обработке',    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',       icon: '⚙️' },
+    { key: 'in_delivery', text: 'Доставляется',   color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: '🚚' },
+    { key: 'done',        text: 'Готово',         color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: '✅' },
+];
+
+const STAGE_INDEX = Object.fromEntries(ORDER_STAGES.map((s, i) => [s.key, i]));
 
 const StatusBadge = ({ status }) => {
-    const s = statusConfig[status] || { text: status, color: 'bg-white/10 text-gray-400 border-white/10' };
+    const s = ORDER_STAGES.find(x => x.key === status) || { text: status, color: 'bg-white/10 text-gray-400 border-white/10' };
     return (
         <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${s.color}`}>
             {s.text}
         </span>
+    );
+};
+
+const OrderProgressBar = ({ status, stageHistory = [] }) => {
+    const currentIdx = STAGE_INDEX[status] ?? 0;
+    const historyMap = {};
+    stageHistory.forEach(h => { historyMap[h.status] = h; });
+
+    return (
+        <div className="pt-3 pb-1">
+            <div className="relative flex items-start">
+                <div className="absolute top-4 left-0 right-0 h-px bg-white/10 mx-8" style={{ zIndex: 0 }} />
+                {ORDER_STAGES.map((stage, idx) => {
+                    const isDone = idx < currentIdx;
+                    const isCurrent = idx === currentIdx;
+                    const entry = historyMap[stage.key];
+                    return (
+                        <div key={stage.key} className="flex-1 flex flex-col items-center gap-1.5 relative z-10">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all text-sm
+                                ${isDone ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400'
+                                    : isCurrent ? 'bg-indigo-500/30 border-indigo-400 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                                    : 'bg-white/5 border-white/15 text-gray-600'}`}
+                            >
+                                {isDone ? (
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                ) : (
+                                    <span className="text-[10px]">{stage.icon}</span>
+                                )}
+                            </div>
+                            <span className={`text-[8px] font-bold uppercase tracking-wider text-center leading-tight
+                                ${isDone ? 'text-emerald-400' : isCurrent ? 'text-indigo-300' : 'text-gray-600'}`}>
+                                {stage.text}
+                            </span>
+                            {entry && (
+                                <div className="flex flex-col items-center gap-0.5 max-w-[72px]">
+                                    <span className="text-[8px] text-gray-500 text-center">
+                                        {new Date(entry.updated_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                                    </span>
+                                    {entry.comment && (
+                                        <span className="text-[8px] text-gray-400 text-center italic leading-tight line-clamp-2">
+                                            {entry.comment}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 };
 
@@ -322,6 +376,9 @@ export const DealerDashboard = ({ onBack }) => {
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
+    const [expandedOrders, setExpandedOrders] = useState(new Set());
+    const [statusUpdating, setStatusUpdating] = useState(null);
+    const [commentDraft, setCommentDraft] = useState({});
 
     useEffect(() => {
         if (activeTab === 'orders') {
@@ -341,9 +398,29 @@ export const DealerDashboard = ({ onBack }) => {
         }
     }, [activeTab, currentUser]);
 
-    const handleSendToProduction = async (orderId) => {
-        await updateOrderStatus(orderId, 'production');
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'production' } : o));
+    const handleUpdateStatus = async (orderId, newStatus) => {
+        const comment = commentDraft[orderId] || '';
+        setStatusUpdating(orderId);
+        try {
+            await updateOrderStatus(orderId, newStatus, comment || null);
+            const newEntry = { status: newStatus, comment, updated_at: new Date().toISOString() };
+            setOrders(prev => prev.map(o =>
+                o.id === orderId
+                    ? { ...o, status: newStatus, stageHistory: [...(o.stageHistory || []), newEntry] }
+                    : o
+            ));
+            setCommentDraft(prev => { const next = { ...prev }; delete next[orderId]; return next; });
+        } finally {
+            setStatusUpdating(null);
+        }
+    };
+
+    const toggleOrderExpand = (orderId) => {
+        setExpandedOrders(prev => {
+            const next = new Set(prev);
+            next.has(orderId) ? next.delete(orderId) : next.add(orderId);
+            return next;
+        });
     };
 
     const handleDeleteProduct = async (productId) => {
@@ -551,65 +628,87 @@ export const DealerDashboard = ({ onBack }) => {
                                     <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Нет заказов</p>
                                 </div>
                             ) : (
-                                orders.map((order, i) => (
-                                    <div
-                                        key={order.id}
-                                        className={`px-4 md:px-6 py-4 md:py-5 flex flex-col md:grid md:grid-cols-[80px_1fr_1fr_1fr_auto] gap-3 md:gap-4 hover:bg-white/[0.03] transition-colors ${
-                                            i !== orders.length - 1 ? 'border-b border-white/5' : ''
-                                        }`}
-                                    >
-                                        {/* Mobile: row with id+date and status */}
-                                        <div className="flex items-center justify-between md:hidden">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
-                                                <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
+                                orders.map((order, i) => {
+                                    const isExpanded = expandedOrders.has(order.id);
+                                    const isUpdating = statusUpdating === order.id;
+                                    const currentStageIdx = STAGE_INDEX[order.status] ?? 0;
+                                    return (
+                                        <div key={order.id} className={i !== orders.length - 1 ? 'border-b border-white/5' : ''}>
+                                            {/* Summary row */}
+                                            <div
+                                                className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 md:gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                                                onClick={() => toggleOrderExpand(order.id)}
+                                            >
+                                                <div className="flex flex-col min-w-[72px]">
+                                                    <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
+                                                    <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="font-bold text-sm text-white truncate block">{order.userEmail}</span>
+                                                    <span className="text-xs text-gray-500 truncate block">{order.product} · {order.price} BYN</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    <StatusBadge status={order.status} />
+                                                    <svg
+                                                        width="14" height="14" viewBox="0 0 14 14" fill="none"
+                                                        className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                                    >
+                                                        <path d="M2 5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                </div>
                                             </div>
-                                            {order.status === 'new' ? (
-                                                <button
-                                                    onClick={() => handleSendToProduction(order.id)}
-                                                    className="px-3 py-1.5 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all"
-                                                >
-                                                    В производство →
-                                                </button>
-                                            ) : (
-                                                <StatusBadge status={order.status} />
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col min-w-0 md:hidden">
-                                            <span className="font-bold text-sm text-white truncate">{order.userEmail}</span>
-                                            <span className="text-xs text-gray-500 truncate">{order.product} · {order.price} BYN</span>
-                                        </div>
 
-                                        {/* Desktop layout */}
-                                        <div className="hidden md:flex flex-col">
-                                            <span className="font-bold text-sm text-white">#{order.id.substring(0, 6).toUpperCase()}</span>
-                                            <span className="text-[10px] text-gray-500 mt-0.5">{order.date}</span>
-                                        </div>
-                                        <div className="hidden md:flex flex-col min-w-0">
-                                            <span className="font-bold text-sm text-white truncate">{order.userEmail}</span>
-                                            <span className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-wider">{order.role}</span>
-                                        </div>
-                                        <div className="hidden md:flex flex-col min-w-0">
-                                            <span className="font-bold text-sm text-white truncate">{order.product}</span>
-                                            <span className="text-xs text-gray-500 truncate">{order.design}</span>
-                                        </div>
-                                        <div className="hidden md:block">
-                                            <span className="font-bold text-white">{order.price} BYN</span>
-                                        </div>
-                                        <div className="hidden md:flex justify-end">
-                                            {order.status === 'new' ? (
-                                                <button
-                                                    onClick={() => handleSendToProduction(order.id)}
-                                                    className="px-4 py-2 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-gray-100 active:scale-95 transition-all whitespace-nowrap"
-                                                >
-                                                    В производство →
-                                                </button>
-                                            ) : (
-                                                <StatusBadge status={order.status} />
+                                            {/* Expanded detail */}
+                                            {isExpanded && (
+                                                <div className="px-4 md:px-6 pb-6 border-t border-white/5 bg-white/[0.02]">
+                                                    {/* Progress bar */}
+                                                    <OrderProgressBar status={order.status} stageHistory={order.stageHistory} />
+
+                                                    {/* Status controls */}
+                                                    <div className="mt-5 space-y-3">
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Обновить этап</p>
+
+                                                        {/* Stage buttons */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {ORDER_STAGES.map((stage, idx) => {
+                                                                const isCurrent = stage.key === order.status;
+                                                                const isPast = idx < currentStageIdx;
+                                                                return (
+                                                                    <button
+                                                                        key={stage.key}
+                                                                        disabled={isCurrent || isUpdating}
+                                                                        onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, stage.key); }}
+                                                                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all
+                                                                            ${isCurrent
+                                                                                ? `${stage.color} cursor-default opacity-100 ring-1 ring-white/20`
+                                                                                : isPast
+                                                                                    ? 'bg-white/5 text-gray-600 border-white/5 hover:bg-white/10 hover:text-gray-400'
+                                                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+                                                                            } ${isUpdating ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                                                    >
+                                                                        {stage.icon} {stage.text}
+                                                                        {isCurrent && ' ✓'}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Comment input */}
+                                                        <div className="flex gap-2 items-start" onClick={e => e.stopPropagation()}>
+                                                            <textarea
+                                                                rows={2}
+                                                                placeholder="Комментарий к этапу (необязательно)..."
+                                                                value={commentDraft[order.id] || ''}
+                                                                onChange={e => setCommentDraft(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                                                className="flex-1 bg-black/20 border border-white/10 rounded-[12px] px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 resize-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
