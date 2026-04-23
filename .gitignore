@@ -98,6 +98,10 @@ dist/
 
 # IDE and AI agent tool settings
 .cursor/
+.agents/
+.claude/
+.cursor/
+.continue/
 .trae/
 .windsurf/
 .copilot/
