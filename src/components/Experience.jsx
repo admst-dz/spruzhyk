@@ -91,7 +91,7 @@ export const Experience = () => {
             <directionalLight position={[-10, 5, 2]} intensity={0.5} />
 
             <PresentationControls
-                speed={isMobile ? 3.5 : 1.5}
+                speed={isMobile ? 10.0 : 1.5}
                 global
                 polar={[-0.1, Math.PI / 4]}
             >
