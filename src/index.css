@@ -10,7 +10,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #E5E5E5;
+  background-color: #F7F3EC;
   transition: background-color 0.4s ease;
 }
 
@@ -22,7 +22,7 @@ html, body, #root {
   }
 }
 html.dark, html.dark body, html.dark #root {
-  background-color: #0B0F19;
+  background-color: #0C0B09;
 }
 
 /* === ВАШИ НОВЫЕ СТИЛИ === */
@@ -39,20 +39,20 @@ html.dark, html.dark body, html.dark #root {
 
 /* 2. Фон Градиент */
 .custom-gradient {
-  background: linear-gradient(180deg, rgba(189, 195, 206, 0.88) 0%, rgba(164, 176, 201, 0.88) 100%);
+  background: linear-gradient(180deg, rgba(237, 229, 216, 0.92) 0%, rgba(221, 208, 188, 0.92) 100%);
 }
 .dark .custom-gradient {
-  background: linear-gradient(180deg, rgba(15, 23, 48, 0.92) 0%, rgba(8, 11, 22, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(19, 17, 14, 0.94) 0%, rgba(12, 11, 9, 0.97) 100%);
 }
 
 /* 3. Подложка (glass) */
 .glass-panel {
-  background-color: rgba(255, 255, 255, 0.11);
+  background-color: rgba(253, 250, 245, 0.15);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(196, 168, 130, 0.25);
 }
 .dark .glass-panel {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }

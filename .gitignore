@@ -95,3 +95,16 @@ typings/
 
 # Build artifacts
 dist/
+
+# IDE and AI agent tool settings
+.cursor/
+.trae/
+.windsurf/
+.copilot/
+.aider*
+.continue/
+*.aider
+.idea/
+.vscode/
+*.swp
+*.swo
