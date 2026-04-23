@@ -2,4 +2,4 @@
 все изменения вносим в ветку дев, git checkout dev
 потом git add .
 git commit -m "комментарий"
-git push origin dev
+git push origin dev и маржу в мейн
