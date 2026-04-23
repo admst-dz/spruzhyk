@@ -29,7 +29,10 @@ function App() {
         logout,
         theme,
         zoomLevel,
-        setZoom
+        setZoom,
+        cartItem,
+        cartRestoredFromCookie,
+        clearCart,
     } = useConfigurator();
 
     useEffect(() => {
@@ -70,6 +73,14 @@ function App() {
         );
     }
 
+    const handleContinueOrder = () => {
+        if (currentUser) {
+            setScreen('client_dashboard');
+        } else {
+            setShowAuth(true);
+        }
+    };
+
     return (
         <>
             {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
@@ -82,6 +93,45 @@ function App() {
                         if (subRole) setClientSubRole(subRole);
                     }}
                 />
+            )}
+
+            {/* --- БАННЕР: НЕЗАВЕРШЁННЫЙ ЗАКАЗ --- */}
+            {cartRestoredFromCookie && screen === 'home' && (
+                <div className="fixed bottom-6 left-6 z-50 max-w-xs w-[calc(100vw-3rem)] sm:w-80 bg-[#1A2642] border border-white/15 rounded-[20px] p-5 shadow-[0_8px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl animate-fade-in">
+                    <div className="flex items-start gap-3 mb-4">
+                        <div className="w-9 h-9 rounded-[12px] bg-white/8 border border-white/10 flex items-center justify-center shrink-0 text-base">
+                            📦
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-bold text-white text-sm leading-tight mb-1">Незавершённый заказ</p>
+                            <p className="text-gray-400 text-xs truncate">{cartItem?.productName}</p>
+                            {cartItem?.design && (
+                                <p className="text-gray-600 text-[11px] truncate mt-0.5">{cartItem.design}</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={clearCart}
+                            className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-300 transition-colors shrink-0 mt-0.5"
+                            aria-label="Удалить"
+                        >
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        </button>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleContinueOrder}
+                            className="flex-1 py-2.5 bg-white text-black text-xs font-bold uppercase tracking-widest rounded-[12px] hover:bg-gray-100 active:scale-[0.98] transition-all"
+                        >
+                            Продолжить →
+                        </button>
+                        <button
+                            onClick={clearCart}
+                            className="px-4 py-2.5 bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-gray-400 text-xs font-bold rounded-[12px] transition-all"
+                        >
+                            Удалить
+                        </button>
+                    </div>
+                </div>
             )}
 
 
@@ -169,8 +219,13 @@ function App() {
 
                             <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
                                 <Interface
-                                    // Кнопка "В Корзину": Гостей кидаем в Order, Авторизованных - в их Dashboard (вкладка согласования)
-                                    onFinish={() => setScreen(currentUser ? 'client_dashboard' : 'order')}
+                                    onFinish={() => {
+                                        if (currentUser) {
+                                            setScreen('client_dashboard');
+                                        } else {
+                                            setShowAuth(true);
+                                        }
+                                    }}
                                     onAuth={() => setShowAuth(true)}
                                     user={currentUser}
                                     logout={logout}
@@ -200,7 +255,13 @@ function App() {
                         </div>
                         <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
                             {/* НОВЫЙ ИНТЕРФЕЙС БЛОКНОТА */}
-                            <SketchbookInterface onFinish={() => setScreen(currentUser ? 'client_dashboard' : 'order')} />
+                            <SketchbookInterface onFinish={() => {
+                                        if (currentUser) {
+                                            setScreen('client_dashboard');
+                                        } else {
+                                            setShowAuth(true);
+                                        }
+                                    }} />
                         </div>
                     </>
                 </div>

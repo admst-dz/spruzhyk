@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { getCookie, setCookie, deleteCookie } from './utils/cookies';
+
+const AUTH_COOKIE = 'spruzhuk_auth';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || '/api/v1',
@@ -6,7 +9,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || getCookie(AUTH_COOKIE);
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 }, (error) => Promise.reject(error));
@@ -44,6 +47,7 @@ export const productApi = {
 export const loginUser = async (email, password) => {
     const { data } = await authApi.login({ email, password });
     localStorage.setItem('token', data.access_token);
+    setCookie(AUTH_COOKIE, data.access_token, 30);
     return data.user;
 };
 
@@ -56,6 +60,7 @@ export const registerUser = async (email, password, displayName, role, subRole) 
         sub_role: subRole || null,
     });
     localStorage.setItem('token', data.access_token);
+    setCookie(AUTH_COOKIE, data.access_token, 30);
     return data.user;
 };
 
@@ -65,13 +70,15 @@ export const updateUserRole = async (role, subRole) => {
 };
 
 export const restoreSession = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || getCookie(AUTH_COOKIE);
     if (!token) return null;
+    if (!localStorage.getItem('token')) localStorage.setItem('token', token);
     try {
         const { data } = await authApi.me();
         return data;
     } catch {
         localStorage.removeItem('token');
+        deleteCookie(AUTH_COOKIE);
         return null;
     }
 };

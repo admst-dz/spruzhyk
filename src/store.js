@@ -1,4 +1,17 @@
 import { create } from 'zustand'
+import { getCookie, setCookie, deleteCookie } from './utils/cookies'
+
+const CART_COOKIE = 'spruzhuk_cart';
+const AUTH_COOKIE = 'spruzhuk_auth';
+
+const _initialCart = (() => {
+    try {
+        const raw = getCookie(CART_COOKIE);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+})();
 
 let _webglCanvas = null
 export const registerWebGLCanvas = (el) => { _webglCanvas = el }
@@ -32,7 +45,8 @@ export const useConfigurator = create((set) => ({
     language: 'ru',
     theme: 'dark',
 
-    cartItem: null,
+    cartItem: _initialCart,
+    cartRestoredFromCookie: !!_initialCart,
     renderSnapshot: null,
 
     // --- ACTIONS ---
@@ -42,7 +56,9 @@ export const useConfigurator = create((set) => ({
     setAuthLoading: (isLoading) => set({ authLoading: isLoading }),
     logout: () => {
         localStorage.removeItem('token');
-        set({ currentUser: null, userRole: null, clientSubRole: 'PL', cartItem: null });
+        deleteCookie(AUTH_COOKIE);
+        deleteCookie(CART_COOKIE);
+        set({ currentUser: null, userRole: null, clientSubRole: 'PL', cartItem: null, cartRestoredFromCookie: false });
     },
 
     setLanguage: (lang) => set({ language: lang }),
@@ -53,8 +69,14 @@ export const useConfigurator = create((set) => ({
         return { theme: newTheme };
     }),
 
-    addToCart: (itemData) => set({ cartItem: itemData }),
-    clearCart: () => set({ cartItem: null }),
+    addToCart: (itemData) => {
+        setCookie(CART_COOKIE, JSON.stringify(itemData), 7);
+        set({ cartItem: itemData, cartRestoredFromCookie: false });
+    },
+    clearCart: () => {
+        deleteCookie(CART_COOKIE);
+        set({ cartItem: null, cartRestoredFromCookie: false });
+    },
     setRenderSnapshot: (url) => set({ renderSnapshot: url }),
 
     setProduct: (type) => set({ activeProduct: type }),
