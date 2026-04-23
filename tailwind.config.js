@@ -8,32 +8,16 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-                mono: ['"Space Mono"', 'monospace'],
                 sans: ['Inter', 'system-ui', 'sans-serif'],
-            },
-            colors: {
-                paper: {
-                    50:  '#FDFAF5',
-                    100: '#F7F3EC',
-                    200: '#EDE5D8',
-                    300: '#DDD0BC',
-                    400: '#C4A882',
-                    500: '#A8855A',
-                },
-                ink: {
-                    900: '#1A1714',
-                    800: '#2C2820',
-                    700: '#3D3830',
-                },
+                mono: ['"Space Mono"', 'monospace'],
             },
             animation: {
-                'fade-up': 'fadeUp 0.5s ease forwards',
-                'fade-in': 'fadeIn 0.3s ease forwards',
+                'fade-up': 'fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
+                'fade-in': 'fadeIn 0.35s ease forwards',
             },
             keyframes: {
                 fadeUp: {
-                    '0%': { opacity: '0', transform: 'translateY(16px)' },
+                    '0%': { opacity: '0', transform: 'translateY(24px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 fadeIn: {

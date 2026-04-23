@@ -108,10 +108,10 @@ export const Interface = ({ onFinish }) => {
             </div>
 
             {/* БОЕВАЯ КНОПКА ЗАКАЗА */}
-            <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#EDE5D8]/95 dark:bg-[#0C0B09]/95 backdrop-blur-xl">
+            <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-[#0B0F19]/80 backdrop-blur-xl">
                 <button
                     onClick={handleAddToCart}
-                    className="w-full py-4 bg-[#1A1714] text-white rounded-[11px] text-base font-bold tracking-[0.2em] uppercase hover:bg-[#2C2820] transition-all shadow-lg active:scale-[0.98] dark:bg-transparent dark:border dark:border-[#C9A96E]/50 dark:text-[#C9A96E] dark:hover:bg-[#C9A96E]/10"
+                    className="w-full py-4 bg-[#1D1D1F] text-white rounded-[11px] text-base font-bold tracking-[0.1em] uppercase hover:bg-black/80 transition-all shadow-lg active:scale-[0.98] dark:bg-white dark:text-[#0B0F19] dark:hover:bg-white/90"
                 >
                     В Корзину
                 </button>
