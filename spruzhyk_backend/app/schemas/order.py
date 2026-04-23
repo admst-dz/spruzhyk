@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from uuid import UUID
 from datetime import datetime
 
@@ -17,6 +17,7 @@ class OrderCreate(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: str
+    comment: Optional[str] = None
 
 
 class OrderResponse(BaseModel):
@@ -30,6 +31,7 @@ class OrderResponse(BaseModel):
     currency: Optional[str] = None
     is_guest: Optional[bool] = None
     status: str
+    stage_history: Optional[List[Dict[str, Any]]] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

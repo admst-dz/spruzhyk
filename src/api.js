@@ -31,7 +31,7 @@ export const orderApi = {
         return apiClient.get(`/orders/all?${params}`);
     },
     getUserOrders: (userId) => apiClient.get(`/orders/user/${userId}`),
-    updateStatus: (orderId, status) => apiClient.patch(`/orders/${orderId}/status`, { status }),
+    updateStatus: (orderId, status, comment = null) => apiClient.patch(`/orders/${orderId}/status`, { status, comment }),
 };
 
 export const productApi = {
@@ -91,6 +91,7 @@ const normalizeOrder = (o) => ({
     design: o.configuration?.productConfig?.coverColor || '',
     price: o.total_price || 0,
     status: o.status || 'new',
+    stageHistory: o.stage_history || [],
     date: o.created_at ? new Date(o.created_at).toLocaleDateString('ru-RU') : '',
     userEmail: o.user_email || '',
     role: o.configuration?.clientType || '',
@@ -113,8 +114,8 @@ export const fetchAllOrders = async (dealerId = null) => {
     return list.map(normalizeOrder);
 };
 
-export const updateOrderStatus = async (orderId, status) => {
-    return await orderApi.updateStatus(orderId, status);
+export const updateOrderStatus = async (orderId, status, comment = null) => {
+    return await orderApi.updateStatus(orderId, status, comment);
 };
 
 // ─── Product helpers ──────────────────────────────────────────────────────────

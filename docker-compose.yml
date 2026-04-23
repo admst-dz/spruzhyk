@@ -16,7 +16,7 @@ services:
       - spruzhuk_net
 
   backend:
-    image: spruzhyk-backend:latest
+    image: ghcr.io/admst-dz/spruzhyk-backend:latest
     container_name: spruzhuk_backend
     restart: unless-stopped
     environment:
@@ -31,7 +31,7 @@ services:
       - spruzhuk_net
 
   frontend:
-    image: spruzhyk-api:latest
+    image: ghcr.io/admst-dz/spruzhyk-frontend:latest
     container_name: spruzhuk_app
     restart: unless-stopped
     ports:
@@ -40,6 +40,27 @@ services:
       - backend
     networks:
       - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: spruzhuk_watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json
+    environment:
+      - DOCKER_CONFIG=/config.json
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=30
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_ROLLING_RESTART=true
+    command: spruzhuk_app spruzhuk_backend
 
 networks:
   spruzhuk_net:
