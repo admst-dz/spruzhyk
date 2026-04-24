@@ -21,6 +21,21 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         setLoading(true);
         try {
             if (isRegistering) {
+                if (password.length < 8) {
+                    setError('Пароль должен быть не менее 8 символов.');
+                    setLoading(false);
+                    return;
+                }
+                if (!/\d/.test(password)) {
+                    setError('Пароль должен содержать хотя бы одну цифру.');
+                    setLoading(false);
+                    return;
+                }
+                if (!/[a-zA-Z]/.test(password)) {
+                    setError('Пароль должен содержать буквы.');
+                    setLoading(false);
+                    return;
+                }
                 setStep(2);
                 setLoading(false);
             } else {
@@ -85,8 +100,12 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
             onRoleCreated?.(user, user.role, user.sub_role || null);
             onClose();
         } catch (err) {
-            const msg = err.response?.data?.detail;
+            const detail = err.response?.data?.detail;
+            const msg = Array.isArray(detail)
+                ? detail.map(d => d.msg?.replace(/^Value error, /, '')).join(' ')
+                : detail;
             if (msg === 'Email уже зарегистрирован') setError('Этот Email уже зарегистрирован.');
+            else if (msg) setError(msg);
             else setError('Ошибка при регистрации. Попробуйте снова.');
             setStep(1);
             setGoogleUser(null);
@@ -155,6 +174,9 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                                     className="w-full py-4 pl-12 pr-4 bg-black/20 border border-white/10 rounded-[16px] text-white text-sm focus:outline-none focus:border-white/30 focus:bg-black/40 transition-all placeholder:text-gray-500"
                                 />
                             </div>
+                            {isRegistering && (
+                                <p className="text-[11px] text-gray-500 -mt-2 pl-1">Минимум 8 символов, буквы и хотя бы одна цифра</p>
+                            )}
 
                             {error && <p className="text-rose-400 text-xs font-bold text-center mt-1">{error}</p>}
 
