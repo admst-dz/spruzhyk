@@ -82,6 +82,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json
     environment:
+      - DOCKER_API_VERSION=1.41
       - DOCKER_CONFIG=/config.json
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=30
