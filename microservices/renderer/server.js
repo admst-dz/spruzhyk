@@ -23,7 +23,7 @@ async function init() {
 app.post('/render', async (req, res) => {
     const { config } = req.body;
 
-    const configBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(config))));
+    const configBase64 = Buffer.from(JSON.stringify(config), 'utf8').toString('base64');
     const renderFrontendHost = process.env.RENDER_FRONTEND_HOST || 'frontend-render';
     const renderFrontendPort = process.env.RENDER_FRONTEND_PORT || '80';
     const renderFrontendPath = process.env.RENDER_FRONTEND_PATH || '/render/';
@@ -45,7 +45,7 @@ app.post('/render', async (req, res) => {
         res.send(imageBuffer);
     } catch (e) {
         console.error(e);
-        res.status(500).json({ error: str(e) });
+        res.status(500).json({ error: String(e) });
     }
 });
 
