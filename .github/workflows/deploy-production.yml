@@ -10,7 +10,7 @@ on:
         required: true
         default: 'both'
         type: choice
-        options: [both, frontend, backend]
+        options: [both, frontend, backend, renderer]
 
 permissions:
   contents: read
@@ -22,6 +22,7 @@ jobs:
     outputs:
       frontend: ${{ steps.result.outputs.frontend }}
       backend: ${{ steps.result.outputs.backend }}
+      renderer: ${{ steps.result.outputs.renderer }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -31,17 +32,22 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
+              - 'Dockerfile'
             backend:
               - 'backend/**'
+            renderer:
+              - 'microservices/renderer/**'
       - id: result
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TARGET="${{ inputs.target }}"
             echo "frontend=$([[ $TARGET == both || $TARGET == frontend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
             echo "backend=$([[ $TARGET == both || $TARGET == backend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "renderer=$([[ $TARGET == both || $TARGET == renderer ]] && echo true || echo false)" >> $GITHUB_OUTPUT
           else
             echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
             echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
+            echo "renderer=${{ steps.filter.outputs.renderer }}" >> $GITHUB_OUTPUT
           fi
 
   build-frontend:
@@ -96,3 +102,29 @@ jobs:
           tags: ghcr.io/admst-dz/spruzhyk-backend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
           cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache,mode=max
+
+  build-renderer:
+    needs: changes
+    if: needs.changes.outputs.renderer == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push renderer
+        uses: docker/build-push-action@v6
+        with:
+          context: ./microservices/renderer
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-renderer:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache,mode=max
