@@ -107,6 +107,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
         currentUser, logout, cartItem, clearCart,
         activeProduct, coverColor, elasticColor, hasElastic,
         paperPattern, bindingType, spiralColor, format,
+        renderSnapshot,
     } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'orders');
 
@@ -180,6 +181,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                     productConfig: cartItem,
                     clientType,
                     contact: { ...formData },
+                    renderSnapshot: renderSnapshot || null,
                 },
                 quantity: 1,
                 total_price: cartItem.priceBYN || null,
@@ -326,7 +328,6 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                             <CartRow label="Обложка" value={<ColorDot color={coverColor} />} />
                                             {hasElastic && <CartRow label="Резинка" value={<ColorDot color={elasticColor} />} />}
                                             {bindingType === 'spiral' && <CartRow label="Пружина" value={<ColorDot color={spiralColor} />} />}
-                                            {cartItem.priceBYN && <CartRow label="Цена" value={<span className="text-white font-black">{cartItem.priceBYN} BYN</span>} />}
                                         </div>
                                     </div>
 
