@@ -51,9 +51,11 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         existing.password_hash = hash_password(data.password)
         if data.display_name:
             existing.display_name = data.display_name
-        # БЕЗОПАСНОСТЬ: Не даем перезаписать роль, если она уже есть
-        if data.sub_role:
-            existing.sub_role = data.sub_role
+
+        # БЕЗОПАСНОСТЬ: Разрешаем задать sub_role только если он пустой
+        if data.sub_role and existing.sub_role is None:
+            if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"]:
+                existing.sub_role = data.sub_role
 
         db.add(existing)
         await db.commit()
@@ -66,8 +68,8 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         email=data.email,
         password_hash=hash_password(data.password),
         display_name=data.display_name or "",
-        role="client",  # ЖЕСТКО СТАВИМ КЛИЕНТА (Дилера назначает админ)
-        sub_role=data.sub_role,
+        role="client",  # БЕЗОПАСНОСТЬ: ЖЕСТКО СТАВИМ КЛИЕНТА
+        sub_role=data.sub_role if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"] else None,
         token_balance=0.0,
     )
     db.add(user)
@@ -78,7 +80,7 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit("10/minute")  # Защита от брутфорса
 async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)):
     user = await crud_user.get_user_by_email(db, data.email)
     if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
@@ -92,7 +94,7 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
 @limiter.limit("10/minute")
 async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     try:
-        payload = await exchange_google_code(body.google_code)
+        payload = await verify_firebase_token(body.firebase_token)
     except Exception:
         raise HTTPException(status_code=401, detail="Недействительный Google токен")
 
@@ -169,19 +171,13 @@ async def update_role(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
-    role = body.get("role")
     sub_role = body.get("sub_role")
 
-    # Разрешаем выбор роли только при первичной настройке (sub_role ещё не задан)
-    if current_user.sub_role is None:
-        if role in ("client", "dealer"):
-            current_user.role = role
+    if current_user.sub_role is None and sub_role:
+        if sub_role not in ["PL", "PKL", "KL", "KPR", "PR"]:
+            raise HTTPException(status_code=400, detail="Недопустимая под-роль")
 
-        if sub_role:
-            if sub_role not in ["PL", "PKL", "KL", "KPR", "PR"]:
-                raise HTTPException(status_code=400, detail="Недопустимая роль")
-            current_user.sub_role = sub_role
-
+        current_user.sub_role = sub_role
         db.add(current_user)
         await db.commit()
         await db.refresh(current_user)
