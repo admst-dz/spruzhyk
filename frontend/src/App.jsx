@@ -14,6 +14,37 @@ import { SketchbookInterface } from './components/SketchbookInterface'
 import { CookieBanner } from './components/CookieBanner'
 
 function App() {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRenderMode = urlParams.get('render_mode') === 'true';
+
+    const { applyRenderConfig /* ... остальное ... */ } = useConfigurator();
+
+    useEffect(() => {
+        if (isRenderMode) {
+            const configBase64 = urlParams.get('config');
+            if (configBase64) {
+                try {
+                    const config = JSON.parse(decodeURIComponent(escape(atob(configBase64))));
+                    applyRenderConfig(config);
+                } catch (e) {
+                    console.error("Failed to parse render config", e);
+                }
+            }
+        }
+    }, [isRenderMode, applyRenderConfig]);
+
+    if (isRenderMode) {
+        return (
+            <div className="w-[1024px] h-[1024px] bg-[#E5E5E5] flex items-center justify-center">
+                <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4.5], fov: 45 }} gl={{ preserveDrawingBuffer: true, antialias: true }}>
+                    <Experience />
+                </Canvas>
+            </div>
+        );
+    }
+
+
     const [screen, setScreen] = useState('home');
     const [showAuth, setShowAuth] = useState(false);
     const [pendingSuccessToast, setPendingSuccessToast] = useState(false);

@@ -27,6 +27,7 @@ services:
       DB_PORT: 5432
     depends_on:
       - db
+      - renderer
     networks:
       - spruzhuk_net
 
@@ -47,6 +48,16 @@ services:
       retries: 3
       start_period: 10s
 
+  renderer:
+    image: ghcr.io/admst-dz/spruzhyk-renderer:latest
+    container_name: spruzhuk_renderer
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks:
+      - spruzhuk_net
+
   watchtower:
     image: containrrr/watchtower
     container_name: spruzhuk_watchtower
@@ -60,7 +71,7 @@ services:
       - WATCHTOWER_POLL_INTERVAL=30
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_ROLLING_RESTART=true
-    command: spruzhuk_app spruzhuk_backend
+    command: spruzhuk_app spruzhuk_backend spruzhuk_renderer
 
 networks:
   spruzhuk_net:
