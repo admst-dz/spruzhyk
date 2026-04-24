@@ -30,17 +30,9 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'src/**'
-              - 'Dockerfile'
-              - 'nginx.conf'
-              - 'package*.json'
-              - 'vite.config.*'
-              - 'index.html'
-              - 'postcss.config.*'
-              - 'tailwind.config.*'
-              - 'eslint.config.*'
+              - 'frontend/**'
             backend:
-              - 'spruzhyk_backend/**'
+              - 'backend/**'
       - id: result
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -72,7 +64,7 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./frontend
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
@@ -98,7 +90,7 @@ jobs:
       - name: Build and push backend
         uses: docker/build-push-action@v6
         with:
-          context: ./spruzhyk_backend
+          context: ./backend
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-backend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
