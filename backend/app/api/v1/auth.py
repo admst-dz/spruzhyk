@@ -5,10 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.crud import user as crud_user
 from app.models.user import User
-from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse, GoogleAuthRequest, GoogleTokenResponse
+from app.schemas.user import (
+    UserRegister,
+    UserLogin,
+    TokenResponse,
+    UserResponse,
+    GoogleAuthRequest,
+    GoogleTokenResponse,
+    TelegramAuthRequest,
+)
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.deps import get_current_user
 from app.core.google_verify import exchange_google_code
+from app.core.telegram_auth import verify_telegram_login
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -16,6 +25,19 @@ from slowapi.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
+
+
+def _build_telegram_email(telegram_id: str) -> str:
+    return f"tg_{telegram_id}@telegram.local"
+
+
+def _build_display_name(payload: dict) -> str:
+    full_name = " ".join(filter(None, [payload.get("first_name"), payload.get("last_name")])).strip()
+    if full_name:
+        return full_name
+    if payload.get("username"):
+        return f"@{payload['username']}"
+    return "Telegram User"
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -91,6 +113,45 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSessio
         db.add(user)
         await db.commit()
         await db.refresh(user)
+
+    needs_role_setup = user.sub_role is None
+    token = create_access_token(user.id, user.email, user.role)
+    return {"access_token": token, "user": user, "needs_role_setup": needs_role_setup}
+
+
+@router.post("/telegram", response_model=GoogleTokenResponse)
+@limiter.limit("10/minute")
+async def telegram_auth(request: Request, body: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = await verify_telegram_login(body.model_dump())
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
+    telegram_id = str(payload["id"])
+    user = await crud_user.get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        email = _build_telegram_email(telegram_id)
+        user = await crud_user.get_user_by_email(db, email)
+        if user and not user.telegram_id:
+            user.telegram_id = telegram_id
+            if not user.display_name:
+                user.display_name = _build_display_name(payload)
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        elif not user:
+            user = User(
+                id=str(uuid.uuid4()),
+                email=email,
+                telegram_id=telegram_id,
+                display_name=_build_display_name(payload),
+                role="client",
+                sub_role=None,
+                token_balance=0.0,
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
 
     needs_role_setup = user.sub_role is None
     token = create_access_token(user.id, user.email, user.role)

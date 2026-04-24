@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useConfigurator } from "../store";
 import { fetchAllOrders, updateOrderStatus, fetchDealerProducts, saveProduct, updateProduct, deleteProduct } from '../api';
+import { getUserSecondaryLabel } from '../utils/user';
 
 const ORDER_STAGES = [
     { key: 'new',         text: 'Новый',          color: 'bg-white/10 text-gray-400 border-white/10',            icon: '🕐' },
@@ -461,7 +462,7 @@ export const DealerDashboard = ({ onBack }) => {
                         <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
                     </div>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Дилер</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{currentUser?.email}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{getUserSecondaryLabel(currentUser)}</p>
                 </div>
 
                 <nav className="flex-1 p-3 space-y-1">
@@ -501,7 +502,7 @@ export const DealerDashboard = ({ onBack }) => {
                     <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Дилер</span>
-                <span className="text-xs text-gray-500 truncate ml-auto">{currentUser?.email}</span>
+                <span className="text-xs text-gray-500 truncate ml-auto">{getUserSecondaryLabel(currentUser)}</span>
             </div>
 
             {/* MAIN */}

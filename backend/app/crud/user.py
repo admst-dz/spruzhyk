@@ -9,3 +9,7 @@ async def get_user(db: AsyncSession, user_id: str):
 async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+async def get_user_by_telegram_id(db: AsyncSession, telegram_id: str):
+    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    return result.scalar_one_or_none()
