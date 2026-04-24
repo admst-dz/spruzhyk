@@ -8,7 +8,13 @@ from typing import Optional
 
 
 async def create_order(db: AsyncSession, order: OrderCreate):
-    db_order = Order(**order.model_dump())
+    data = order.model_dump()
+    data['stage_history'] = [{
+        "status": "new",
+        "comment": "Заказ принят системой, ожидайте обработки",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    db_order = Order(**data)
     db.add(db_order)
     await db.commit()
     await db.refresh(db_order)

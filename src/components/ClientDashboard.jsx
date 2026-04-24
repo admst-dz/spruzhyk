@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { useConfigurator } from "../store";
 import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
+import { Notebook } from './Notebook';
+import { Sketchbook } from './Sketchbook';
 
 const TabBtn = ({ active, children, onClick }) => (
     <button
@@ -98,17 +102,25 @@ const OrderStatus = ({ status }) => {
     );
 };
 
-export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown }) => {
-    const { currentUser, logout, clientSubRole, cartItem, clearCart, addToCart } = useConfigurator();
+export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToastShown }) => {
+    const {
+        currentUser, logout, cartItem, clearCart,
+        activeProduct, coverColor, elasticColor, hasElastic,
+        paperPattern, bindingType, spiralColor, format,
+    } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'catalog');
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [expandedOrders, setExpandedOrders] = useState(new Set());
-    const [isGenerating, setIsGenerating] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [products, setProducts] = useState([]);
     const [productsLoading, setProductsLoading] = useState(false);
+
+    const [clientType, setClientType] = useState('phys');
+    const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '', inn: '', contactPerson: '', comment: '' });
+    const [formError, setFormError] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (showSuccessToast) {
@@ -147,23 +159,27 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
     }, [activeTab]);
 
 
-    const handleGenerateRenders = () => {
-        setIsGenerating(true);
-        setTimeout(() => {
-            addToCart({ ...cartItem, status: 'renders_ready', rendersGenerated: 3 });
-            setIsGenerating(false);
-        }, 1500);
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleApprove = async () => {
+        if (!formData.name || !formData.phone) {
+            setFormError('Заполните имя и телефон');
+            return;
+        }
+        setFormError('');
+        setSubmitting(true);
         try {
             const id = await createOrderInDB({
                 user_id: currentUser?.id || null,
-                user_email: currentUser?.email || '',
+                user_email: currentUser?.email || formData.email || '',
                 product_name: cartItem.productName,
                 configuration: {
                     productConfig: cartItem,
-                    clientType: clientSubRole || 'client',
+                    clientType,
+                    contact: { ...formData },
                 },
                 quantity: 1,
                 total_price: cartItem.priceBYN || null,
@@ -177,6 +193,11 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
                 design: cartItem.design || '',
                 price: cartItem.priceBYN || 0,
                 status: 'new',
+                stageHistory: [{
+                    status: 'new',
+                    comment: 'Заказ принят системой, ожидайте обработки',
+                    updated_at: new Date().toISOString(),
+                }],
                 date: new Date().toLocaleDateString('ru-RU'),
             };
             setOrders(prev => [newOrder, ...prev]);
@@ -185,6 +206,9 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
             setActiveTab('orders');
         } catch (error) {
             console.error(error);
+            setFormError('Ошибка сети. Попробуйте позже.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -264,54 +288,107 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
 
                 {/* CART TAB */}
                 {activeTab === 'cart' && (
-                    <div className="max-w-2xl">
-                        <div className="bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[24px] p-8">
-                            {!cartItem ? (
-                                <div className="py-16 flex flex-col items-center gap-4">
-                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/10 text-2xl">🛒</div>
-                                    <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Корзина пуста</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div>
-                                            <h3 className="font-bold text-xl text-white">{cartItem.productName}</h3>
-                                            <p className="text-sm text-gray-400 mt-1">{cartItem.design}</p>
-                                        </div>
-                                        <span className="font-bold text-2xl text-white">{cartItem.priceBYN} BYN</span>
-                                    </div>
+                    <div>
+                        {!cartItem ? (
+                            <div className="bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[24px] p-16 flex flex-col items-center gap-4">
+                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/10 text-2xl">🛒</div>
+                                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Корзина пуста</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col lg:flex-row gap-8">
 
-                                    <div className="bg-white/5 p-5 rounded-[16px] mb-6 border border-white/5">
-                                        <h4 className="text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-4">Визуализация</h4>
-                                        {cartItem.status === 'draft' ? (
-                                            <button
-                                                onClick={handleGenerateRenders}
-                                                disabled={isGenerating}
-                                                className="w-full py-4 border-2 border-dashed border-white/20 text-gray-300 font-bold uppercase tracking-widest rounded-[12px] hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-500/5 transition-all text-sm"
-                                            >
-                                                {isGenerating ? 'Генерация...' : 'Сгенерировать рендеры'}
-                                            </button>
-                                        ) : (
-                                            <p className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-[10px]">
-                                                ✅ Файлы успешно сгенерированы. Проверьте дизайн.
-                                            </p>
-                                        )}
+                                {/* ЛЕВАЯ — модель + параметры */}
+                                <div className="w-full lg:w-2/5 flex flex-col gap-4">
+                                    <div className="bg-white/[0.03] border border-white/10 rounded-[24px] overflow-hidden">
+                                        {/* 3D Canvas */}
+                                        <div className="relative bg-[#0A0E1A]" style={{ height: 280 }}>
+                                            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4.5], fov: 45 }} gl={{ antialias: true }}>
+                                                <Environment preset="city" />
+                                                <ambientLight intensity={0.6} />
+                                                <directionalLight position={[10, 10, 5]} intensity={1.5} />
+                                                <directionalLight position={[-10, 5, 2]} intensity={0.5} />
+                                                <PresentationControls speed={1.5} global polar={[-0.1, Math.PI / 4]}>
+                                                    <Stage environment={null} intensity={0} contactShadow={false}>
+                                                        {activeProduct === 'notebook' && <Notebook />}
+                                                        {activeProduct === 'sketchbook' && <Sketchbook />}
+                                                    </Stage>
+                                                </PresentationControls>
+                                            </Canvas>
+                                            <div className="absolute top-3 left-3 text-white/30 text-[10px] font-bold tracking-wider pointer-events-none uppercase">Перетащи для вращения</div>
+                                        </div>
+
+                                        {/* Параметры */}
+                                        <div className="p-5 space-y-2 border-t border-white/5">
+                                            <CartRow label="Продукт" value={cartItem.productName} />
+                                            <CartRow label="Формат" value={format} />
+                                            <CartRow label="Переплет" value={bindingType === 'hard' ? 'Твердый' : 'На пружине'} />
+                                            <CartRow label="Разлиновка" value={{ blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' }[paperPattern]} />
+                                            <CartRow label="Обложка" value={<ColorDot color={coverColor} />} />
+                                            {hasElastic && <CartRow label="Резинка" value={<ColorDot color={elasticColor} />} />}
+                                            {bindingType === 'spiral' && <CartRow label="Пружина" value={<ColorDot color={spiralColor} />} />}
+                                            {cartItem.priceBYN && <CartRow label="Цена" value={<span className="text-white font-black">{cartItem.priceBYN} BYN</span>} />}
+                                        </div>
                                     </div>
 
                                     <button
-                                        onClick={handleApprove}
-                                        disabled={cartItem.status === 'draft'}
-                                        className={`w-full py-4 font-bold uppercase tracking-widest rounded-[14px] transition-all text-sm ${
-                                            cartItem.status === 'draft'
-                                                ? 'bg-white/5 text-gray-600 cursor-not-allowed border border-white/5'
-                                                : 'bg-white text-black hover:bg-gray-100 shadow-[0_0_30px_rgba(255,255,255,0.15)] active:scale-[0.98]'
-                                        }`}
+                                        onClick={onEdit}
+                                        className="w-full py-3 rounded-[14px] border border-white/10 text-gray-400 font-bold uppercase tracking-widest text-xs hover:border-white/30 hover:text-white transition-all"
                                     >
-                                        Оформить заказ
+                                        ← Допилить в редакторе
                                     </button>
-                                </>
-                            )}
-                        </div>
+                                </div>
+
+                                {/* ПРАВАЯ — контактные данные */}
+                                <div className="w-full lg:w-3/5 flex flex-col gap-4">
+                                    <div className="bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[24px] p-6 md:p-8 flex flex-col gap-6">
+                                        <h3 className="font-bold text-lg uppercase tracking-widest text-white">Контактные данные</h3>
+
+                                        {/* Физ/Юр переключатель */}
+                                        <div className="bg-white/5 p-1.5 rounded-[14px] flex border border-white/8">
+                                            <button
+                                                onClick={() => setClientType('phys')}
+                                                className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-widest rounded-[12px] transition-all ${clientType === 'phys' ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                            >Физ. лицо</button>
+                                            <button
+                                                onClick={() => setClientType('jur')}
+                                                className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-widest rounded-[12px] transition-all ${clientType === 'jur' ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                            >Юр. лицо</button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {clientType === 'phys' ? (<>
+                                                <CartInput name="name" label="ФИО *" placeholder="Иванов Иван" value={formData.name} onChange={handleInputChange} />
+                                                <CartInput name="phone" label="Телефон *" placeholder="+375..." type="tel" value={formData.phone} onChange={handleInputChange} />
+                                                <CartInput name="email" label="Email" placeholder="mail@..." type="email" value={formData.email} onChange={handleInputChange} />
+                                                <CartInput name="address" label="Адрес доставки" placeholder="Город, улица..." value={formData.address} onChange={handleInputChange} />
+                                            </>) : (<>
+                                                <CartInput name="name" label="Название компании *" placeholder='ООО "Пример"' value={formData.name} onChange={handleInputChange} />
+                                                <CartInput name="inn" label="УНП / ИНН" placeholder="123456789" value={formData.inn} onChange={handleInputChange} />
+                                                <CartInput name="contactPerson" label="Контактное лицо *" placeholder="ФИО" value={formData.contactPerson} onChange={handleInputChange} />
+                                                <CartInput name="phone" label="Телефон *" placeholder="+375..." type="tel" value={formData.phone} onChange={handleInputChange} />
+                                            </>)}
+                                            <div className="md:col-span-2">
+                                                <CartInput name="comment" label="Комментарий" placeholder="Доп. пожелания..." value={formData.comment} onChange={handleInputChange} isTextarea />
+                                            </div>
+                                        </div>
+
+                                        {formError && (
+                                            <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-[10px]">
+                                                {formError}
+                                            </p>
+                                        )}
+
+                                        <button
+                                            onClick={handleApprove}
+                                            disabled={submitting}
+                                            className={`w-full py-4 font-bold uppercase tracking-widest rounded-[14px] transition-all text-sm ${submitting ? 'bg-white/10 text-gray-500 cursor-wait' : 'bg-white text-black hover:bg-gray-100 shadow-[0_0_30px_rgba(255,255,255,0.15)] active:scale-[0.98]'}`}
+                                        >
+                                            {submitting ? 'Отправка...' : 'Оформить заказ →'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -402,3 +479,34 @@ export const ClientDashboard = ({ onBack, showSuccessToast, onSuccessToastShown 
         </div>
     );
 };
+
+const CartRow = ({ label, value }) => (
+    <div className="flex justify-between items-center py-1">
+        <span className="text-gray-500 font-bold text-xs uppercase tracking-wider">{label}</span>
+        <span className="font-bold text-white text-sm text-right">{value}</span>
+    </div>
+);
+
+const ColorDot = ({ color }) => (
+    <div className="flex items-center gap-2">
+        <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
+        <span className="uppercase text-xs font-black text-white">{color}</span>
+    </div>
+);
+
+const CartInput = ({ label, name, placeholder, type = 'text', value, onChange, isTextarea = false }) => (
+    <div className="flex flex-col gap-1.5">
+        <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest">{label}</label>
+        {isTextarea ? (
+            <textarea
+                name={name} value={value} onChange={onChange} placeholder={placeholder}
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-[12px] text-white font-bold placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 resize-none h-24 text-sm transition-colors"
+            />
+        ) : (
+            <input
+                name={name} value={value} onChange={onChange} type={type} placeholder={placeholder}
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-[12px] text-white font-bold placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 text-sm transition-colors"
+            />
+        )}
+    </div>
+);

@@ -169,6 +169,7 @@ function App() {
             {screen === 'client_dashboard' && (
                 <ClientDashboard
                     onBack={() => setScreen('home')}
+                    onEdit={() => setScreen('configurator')}
                     showSuccessToast={pendingSuccessToast}
                     onSuccessToastShown={() => setPendingSuccessToast(false)}
                 />
