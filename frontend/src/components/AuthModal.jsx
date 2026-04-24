@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { useGoogleLogin } from '@react-oauth/google';
 import { loginUser, registerUser, updateUserRole } from '../api';
 import apiClient from '../api';
 
@@ -50,30 +49,33 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         }
     };
 
-    const handleGoogle = async () => {
-        setError(null);
-        setLoading(true);
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const firebaseToken = await result.user.getIdToken();
-            const { data } = await apiClient.post('/auth/google', { firebase_token: firebaseToken });
-            localStorage.setItem('token', data.access_token);
+    const googleLogin = useGoogleLogin({
+        flow: 'auth-code',
+        onSuccess: async (codeResponse) => {
+            setError(null);
+            setLoading(true);
+            try {
+                const { data } = await apiClient.post('/auth/google', { google_code: codeResponse.code });
+                localStorage.setItem('token', data.access_token);
 
-            if (data.needs_role_setup) {
-                setGoogleUser(data.user);
-                setLoading(false);
-                setStep(2);
-            } else {
-                onRoleCreated?.(data.user, data.user.role, data.user.sub_role || null);
-                onClose();
-            }
-        } catch (err) {
-            if (err.code !== 'auth/popup-closed-by-user') {
+                if (data.needs_role_setup) {
+                    setGoogleUser(data.user);
+                    setLoading(false);
+                    setStep(2);
+                } else {
+                    onRoleCreated?.(data.user, data.user.role, data.user.sub_role || null);
+                    onClose();
+                }
+            } catch {
                 setError('Ошибка входа через Google. Попробуйте снова.');
+                setLoading(false);
             }
+        },
+        onError: () => {
+            setError('Ошибка входа через Google. Попробуйте снова.');
             setLoading(false);
-        }
-    };
+        },
+    });
 
     const selectRole = (role) => {
         if (role === 'dealer') {
@@ -195,7 +197,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                         </div>
 
                         <button
-                            onClick={handleGoogle}
+                            onClick={() => googleLogin()}
                             disabled={loading}
                             className="w-full py-3 bg-black/20 border border-white/10 rounded-[16px] font-bold text-sm flex items-center justify-center gap-3 hover:bg-white/5 transition-all text-white active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >

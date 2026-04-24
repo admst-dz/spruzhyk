@@ -1,10 +1,10 @@
-name: Deploy to Firebase Hosting
+name: Build Frontend
 
 on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -15,48 +15,23 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Show Node / npm versions
-        run: |
-          node --version
-          npm --version
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
-      - name: Show installed packages
-        run: npm list --depth=0 || true
-
       - name: Build
+        working-directory: frontend
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: npm run build
 
       - name: Verify build output exists
         run: |
-          if [ ! -d "dist" ]; then
+          if [ ! -d "frontend/dist" ]; then
             echo "ERROR: dist/ folder not found — build failed silently"
             exit 1
           fi
           echo "dist/ contents:"
-          ls -lh dist/
-          echo "dist/assets/ contents:"
-          ls -lh dist/assets/ || echo "(no assets folder)"
-          INDEX="dist/index.html"
-          if [ ! -f "$INDEX" ]; then
-            echo "ERROR: dist/index.html missing — build is broken"
-            exit 1
-          fi
-          echo "index.html size: $(wc -c < $INDEX) bytes"
-
-      - name: Check firebase.json exists
-        run: |
-          if [ ! -f "firebase.json" ]; then
-            echo "ERROR: firebase.json not found"
-            exit 1
-          fi
-          echo "firebase.json:"
-          cat firebase.json
-
-      - name: Deploy to Firebase Hosting
-        run: npx firebase-tools deploy --only hosting --project spruzhuk --token "$FIREBASE_TOKEN" --debug
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          ls -lh frontend/dist/
