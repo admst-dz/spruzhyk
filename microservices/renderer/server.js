@@ -24,8 +24,11 @@ app.post('/render', async (req, res) => {
     const { config } = req.body;
 
     const configBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(config))));
-
-    const url = `http://frontend:80/?render_mode=true&config=${configBase64}`;
+    const renderFrontendHost = process.env.RENDER_FRONTEND_HOST || 'frontend-render';
+    const renderFrontendPort = process.env.RENDER_FRONTEND_PORT || '80';
+    const renderFrontendPath = process.env.RENDER_FRONTEND_PATH || '/render/';
+    const normalizedPath = renderFrontendPath.startsWith('/') ? renderFrontendPath : `/${renderFrontendPath}`;
+    const url = `http://${renderFrontendHost}:${renderFrontendPort}${normalizedPath}?render_mode=true&config=${configBase64}`;
 
     try {
         const page = await browser.newPage();
