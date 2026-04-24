@@ -27,7 +27,6 @@ services:
       DB_PORT: 5432
     depends_on:
       - db
-      - renderer
     networks:
       - spruzhuk_net
 
@@ -52,8 +51,6 @@ services:
     image: ghcr.io/admst-dz/spruzhyk-frontend:latest
     container_name: spruzhuk_app_render
     restart: unless-stopped
-    depends_on:
-      - backend
     networks:
       - spruzhuk_net
     healthcheck:
