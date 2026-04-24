@@ -7,17 +7,27 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_async_engine(DATABASE_URL, echo=False) # echo=True выводит все SQL запросы в консоль
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    # БЕЗОПАСНОСТЬ: Настройка пула соединений
+    pool_size=10,        # Держим 10 постоянных подключений
+    max_overflow=20,     # Разрешаем создать еще 20 при пиковой нагрузке
+    pool_recycle=1800,   # Перезапускаем соединения каждые 30 минут
+    pool_pre_ping=True   # Проверяем "живость" соединения перед использованием
+)
 
 AsyncSessionLocal = sessionmaker(
-    bind=engine, 
-    class_=AsyncSession, 
+    bind=engine,
+    class_=AsyncSession,
     expire_on_commit=False
 )
 
 Base = declarative_base()
 
-# Зависимость для получения сессии БД в эндпоинтах
 async def get_db():
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
