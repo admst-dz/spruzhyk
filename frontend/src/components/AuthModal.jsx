@@ -255,15 +255,11 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                             Войти через Google
                         </button>
 
-                        <div
-                            className={`w-full mt-3 flex items-center justify-center rounded-[16px] border border-white/10 bg-black/20 min-h-[54px] ${loading ? 'opacity-50 pointer-events-none' : ''}`}
-                        >
-                            {TELEGRAM_BOT_NAME ? (
+                        {TELEGRAM_BOT_NAME && (
+                            <div className={`w-full mt-3 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div ref={telegramButtonRef} className="telegram-login-wrap"></div>
-                            ) : (
-                                <span className="text-xs text-gray-500">Telegram bot name не настроен</span>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         <div className="mt-6 text-center">
                             <button onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-[11px] text-gray-400 hover:text-white transition-colors">
