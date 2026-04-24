@@ -70,9 +70,6 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
             </header>
 
             <main className="md:flex-1 flex flex-col items-center justify-center pt-10 pb-20 px-4 z-10">
-                <div className="flex items-center gap-2 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md mb-8 shadow-sm dark:shadow-none transition-colors">
-                    <div className="w-2 h-2 bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
-                </div>
                 <h1 className="text-5xl md:text-7xl font-bold text-center leading-tight tracking-tight mb-6 text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-white dark:to-gray-400 drop-shadow-sm dark:drop-shadow-2xl transition-colors">
                     {t(language, 'title1')}<br/>{t(language, 'title2')}
                 </h1>
