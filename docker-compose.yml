@@ -1,0 +1,106 @@
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:15-alpine
+    pull_policy: if_not_present
+    container_name: spruzhuk_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: spruzhuk
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - spruzhuk_net
+
+  backend:
+    image: ghcr.io/admst-dz/spruzhyk-backend:latest
+    container_name: spruzhuk_backend
+    restart: unless-stopped
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: rootpassword
+      DB_NAME: spruzhuk
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      - db
+    networks:
+      - spruzhuk_net
+
+  frontend:
+    image: ghcr.io/admst-dz/spruzhyk-frontend:latest
+    container_name: spruzhuk_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend-render:
+    image: ghcr.io/admst-dz/spruzhyk-frontend:latest
+    container_name: spruzhuk_app_render
+    restart: unless-stopped
+    networks:
+      - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/render/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  renderer:
+    image: ghcr.io/admst-dz/spruzhyk-renderer:latest
+    container_name: spruzhuk_renderer
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -lc
+      - >
+        node -e "const fs=require('fs'); const path='/app/package.json';
+        const pkg=JSON.parse(fs.readFileSync(path,'utf8'));
+        if (pkg.type !== 'module') { pkg.type = 'module'; fs.writeFileSync(path, JSON.stringify(pkg, null, 2)); }"
+        && npm start
+    environment:
+      RENDER_FRONTEND_HOST: frontend-render
+      RENDER_FRONTEND_PORT: 80
+      RENDER_FRONTEND_PATH: /render/
+    depends_on:
+      frontend-render:
+        condition: service_healthy
+    networks:
+      - spruzhuk_net
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: spruzhuk_watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker:/config
+    environment:
+      - DOCKER_API_VERSION=1.41
+      - DOCKER_CONFIG=/config
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=30
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_ROLLING_RESTART=true
+    command: spruzhuk_app spruzhuk_app_render spruzhuk_backend spruzhuk_renderer
+
+networks:
+  spruzhuk_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

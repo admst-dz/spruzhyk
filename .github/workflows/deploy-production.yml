@@ -1,72 +1,130 @@
-name: Deploy to Production (Docker)
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to build'
+        required: true
+        default: 'both'
+        type: choice
+        options: [both, frontend, backend, renderer]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  deploy:
-    # Для PR — деплоить только если мерж (не просто закрытый PR)
-    if: github.event_name == 'push' || github.event.pull_request.merged == true
+  changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      frontend: ${{ steps.result.outputs.frontend }}
+      backend: ${{ steps.result.outputs.backend }}
+      renderer: ${{ steps.result.outputs.renderer }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t spruzhyk-app:latest .
-
-      - name: Save Docker image to tar
-        run: docker save spruzhyk-app:latest | gzip > spruzhyk-app.tar.gz
-
-      - name: Copy image to server via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'push'
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          source: spruzhyk-app.tar.gz
-          target: /tmp/
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'Dockerfile'
+            backend:
+              - 'backend/**'
+            renderer:
+              - 'microservices/renderer/**'
+      - id: result
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.target }}"
+            echo "frontend=$([[ $TARGET == both || $TARGET == frontend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "backend=$([[ $TARGET == both || $TARGET == backend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "renderer=$([[ $TARGET == both || $TARGET == renderer ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
+            echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
+            echo "renderer=${{ steps.filter.outputs.renderer }}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Deploy on server via SSH
-        uses: appleboy/ssh-action@v1.2.0
+  build-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USER }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            CONTAINER_NAME="spruzhyk-app"
-            IMAGE_NAME="spruzhyk-app"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            # Загружаем новый образ
-            docker load < /tmp/spruzhyk-app.tar.gz
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache,mode=max
 
-            # Останавливаем и удаляем старый контейнер (если есть)
-            docker stop "$CONTAINER_NAME" 2>/dev/null || true
-            docker rm "$CONTAINER_NAME" 2>/dev/null || true
+  build-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            # Запускаем новый контейнер
-            docker run -d \
-              --name "$CONTAINER_NAME" \
-              --restart unless-stopped \
-              -p 80:80 \
-              "$IMAGE_NAME:latest"
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            # Чистим
-            rm -f /tmp/spruzhyk-app.tar.gz
-            docker image prune -f
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            echo "Deployment successful! Container status:"
-            docker ps | grep "$CONTAINER_NAME"
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-backend:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache,mode=max
+
+  build-renderer:
+    needs: changes
+    if: needs.changes.outputs.renderer == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push renderer
+        uses: docker/build-push-action@v6
+        with:
+          context: ./microservices/renderer
+          push: true
+          tags: ghcr.io/admst-dz/spruzhyk-renderer:latest
+          cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache
+          cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache,mode=max

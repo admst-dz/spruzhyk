@@ -95,3 +95,6 @@ typings/
 
 # Build artifacts
 dist/
+
+.claude
+/.venv/
