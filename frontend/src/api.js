@@ -23,6 +23,7 @@ apiClient.interceptors.request.use((config) => {
 export const authApi = {
     register: (data) => apiClient.post('/auth/register', data),
     login: (data) => apiClient.post('/auth/login', data),
+    telegram: (data) => apiClient.post('/auth/telegram', data),
     me: () => apiClient.get('/auth/me'),
     updateRole: (role, sub_role) => apiClient.patch('/auth/me/role', { role, sub_role }),
 };
@@ -78,6 +79,17 @@ export const registerUser = async (email, password, displayName, role, subRole) 
 
 export const updateUserRole = async (role, subRole) => {
     const { data } = await authApi.updateRole(role, subRole || null);
+    return data;
+};
+
+export const loginWithTelegram = async (telegramUser) => {
+    const { data } = await authApi.telegram(telegramUser);
+    if (hasCookieConsent()) {
+        localStorage.setItem('token', data.access_token);
+        setCookie(AUTH_COOKIE, data.access_token, 30);
+    } else {
+        _memoryToken = data.access_token;
+    }
     return data;
 };
 

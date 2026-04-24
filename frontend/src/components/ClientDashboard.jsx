@@ -5,6 +5,7 @@ import { useConfigurator } from "../store";
 import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
+import { getUserDisplayName, getUserSecondaryLabel } from '../utils/user';
 
 const TabBtn = ({ active, children, onClick }) => (
     <button
@@ -226,8 +227,8 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                             <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
                         </div>
                         <div className="hidden md:flex flex-col">
-                            <span className="text-sm font-bold text-white">{currentUser?.display_name || currentUser?.email?.split('@')[0]}</span>
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest">{currentUser?.email}</span>
+                            <span className="text-sm font-bold text-white">{getUserDisplayName(currentUser)}</span>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest">{getUserSecondaryLabel(currentUser)}</span>
                         </div>
                     </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useConfigurator } from '../store';
 import { t } from '../i18n';
+import { getUserDisplayName } from '../utils/user';
 
 export const Home = ({ onStart, onAuth, user, logout }) => {
     const {
@@ -56,7 +57,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                     </button>
                     {user ? (
                         <div className="flex items-center gap-3 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-sm dark:shadow-none transition-colors">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">{user.display_name || user.email.split('@')[0]}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">{getUserDisplayName(user)}</span>
                             <div className="w-px h-4 bg-gray-300 dark:bg-white/20"></div>
                             <button onClick={logout} className="text-xs text-red-500 dark:text-red-400 font-bold hover:text-red-700 dark:hover:text-red-300 transition">{t(language, 'logout')}</button>
                         </div>
