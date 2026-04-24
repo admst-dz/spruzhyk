@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_pagination import Page, paginate
+import httpx
+import uuid
+import os
+
 from app.database import get_db
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
 from app.services.order_service import OrderService
@@ -10,6 +14,39 @@ from app.core.deps import get_current_user
 
 router = APIRouter()
 
+os.makedirs("uploads/renders", exist_ok=True)
+
+
+async def generate_backend_render(config: dict) -> str:
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post("http://renderer:3000/render", json={"config": config}, timeout=20.0)
+            res.raise_for_status()
+
+            filename = f"render_{uuid.uuid4().hex}.png"
+            filepath = f"uploads/renders/{filename}"
+            with open(filepath, "wb") as f:
+                f.write(res.content)
+
+            return f"/uploads/renders/{filename}"
+    except Exception as e:
+        print(f"Error generating render: {e}")
+        return None
+
+
+@router.post("/", response_model=OrderResponse)
+async def create_order(
+        order: OrderCreate,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user),
+):
+    config_for_3d = order.configuration.get("productConfig", {})
+    render_url = await generate_backend_render(config_for_3d)
+
+    if render_url:
+        order.configuration["server_render_url"] = render_url
+
+    return await OrderService.create_new_order(db, order, current_user.id)
 
 @router.post("/", response_model=OrderResponse)
 async def create_order(

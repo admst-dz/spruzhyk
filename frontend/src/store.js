@@ -23,6 +23,7 @@ export const captureRender = () => {
 
 export const useConfigurator = create((set) => ({
     activeProduct: 'notebook', // 'notebook' | 'calendar' | 'sketchbook'
+    applyRenderConfig: (config) => set((state) => ({ ...state, ...config })),
 
     // --- Параметры 3D модели ---
     bindingType: 'hard',

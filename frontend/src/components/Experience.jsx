@@ -78,6 +78,15 @@ export const Experience = () => {
     // Итоговый зум = База * То, что накликали кнопками
     const finalZoom = baseZoom * zoomLevel;
 
+    useFrame(() => {
+        if (!window.__3D_READY__) {
+            // Даем 10 кадров на то, чтобы easing.damp применил цвета
+            setTimeout(() => {
+                window.__3D_READY__ = true;
+            }, 300);
+        }
+    });
+
     return (
         <>
             <CanvasRegistrar />
