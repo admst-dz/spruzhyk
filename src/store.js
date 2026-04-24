@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { getCookie, setCookie, deleteCookie } from './utils/cookies'
+import { getCookie, setCookie, deleteCookie, hasCookieConsent } from './utils/cookies'
+import { clearMemoryToken } from './api'
 
 const CART_COOKIE = 'spruzhuk_cart';
 const AUTH_COOKIE = 'spruzhuk_auth';
@@ -58,6 +59,7 @@ export const useConfigurator = create((set) => ({
         localStorage.removeItem('token');
         deleteCookie(AUTH_COOKIE);
         deleteCookie(CART_COOKIE);
+        clearMemoryToken();
         set({ currentUser: null, userRole: null, clientSubRole: 'PL', cartItem: null, cartRestoredFromCookie: false });
     },
 
@@ -70,7 +72,7 @@ export const useConfigurator = create((set) => ({
     }),
 
     addToCart: (itemData) => {
-        setCookie(CART_COOKIE, JSON.stringify(itemData), 7);
+        if (hasCookieConsent()) setCookie(CART_COOKIE, JSON.stringify(itemData), 7);
         set({ cartItem: itemData, cartRestoredFromCookie: false });
     },
     clearCart: () => {
