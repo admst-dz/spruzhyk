@@ -14,6 +14,17 @@ from app.api.v1 import users, products, orders, auth
 from app.database import get_db
 from fastapi_pagination import add_pagination
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY" # Запрещает вставлять сайт в iframe
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        if "server" in response.headers:
+            del response.headers["server"]
+        return response
+
 # --- 1. SENTRY (Мониторинг ошибок) ---
 _sentry_dsn = os.getenv("SENTRY_DSN", "")
 if _sentry_dsn:
@@ -66,5 +77,5 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["Products"])
-
+app.add_middleware(SecurityHeadersMiddleware)
 add_pagination(app)
