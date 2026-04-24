@@ -108,7 +108,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
         activeProduct, coverColor, elasticColor, hasElastic,
         paperPattern, bindingType, spiralColor, format,
     } = useConfigurator();
-    const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'catalog');
+    const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'orders');
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
@@ -195,7 +195,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                 status: 'new',
                 stageHistory: [{
                     status: 'new',
-                    comment: 'Заказ принят системой, ожидайте обработки',
+                    comment: 'Заказ принят системой, ожидайте связи с типографией',
                     updated_at: new Date().toISOString(),
                 }],
                 date: new Date().toLocaleDateString('ru-RU'),
@@ -471,8 +471,8 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                         <div className="w-14 h-14 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <p className="font-bold text-lg text-white uppercase tracking-wide">Заказ оформлен!</p>
-                        <p className="text-sm text-gray-400 mt-2">Менеджер свяжется с вами в ближайшее время</p>
+                        <p className="font-bold text-lg text-white uppercase tracking-wide">Заказ принят системой</p>
+                        <p className="text-sm text-gray-400 mt-2">Ожидайте связи с типографией</p>
                     </div>
                 </div>
             )}

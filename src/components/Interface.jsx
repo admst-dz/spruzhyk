@@ -14,6 +14,7 @@ const palette = [
 
 export const Interface = ({ onFinish }) => {
     const [tab, setTab] = useState('cover');
+    const [renderPreview, setRenderPreview] = useState(null);
 
     const {
         format, setFormat,
@@ -40,10 +41,19 @@ export const Interface = ({ onFinish }) => {
         );
     }
 
-    // Обработчик нажатия "В Корзину"
+    const handleGenerateRenders = () => {
+        const snapshot = captureRender();
+        if (snapshot) {
+            setRenderSnapshot(snapshot);
+            setRenderPreview(snapshot);
+        } else {
+            setRenderPreview('placeholder');
+        }
+    };
+
     const handleAddToCart = () => {
-        const snapshot = captureRender()
-        if (snapshot) setRenderSnapshot(snapshot)
+        const snapshot = renderPreview !== 'placeholder' ? renderPreview : captureRender();
+        if (snapshot) setRenderSnapshot(snapshot);
         const newItem = {
             productName: `Ежедневник ${format}`,
             design: `Переплет: ${bindingType === 'hard' ? 'Твердый' : 'Пружина'}, Блок: ${paperPattern}`,
@@ -51,10 +61,10 @@ export const Interface = ({ onFinish }) => {
             priceBYN: 1500,
             config: { format, coverColor, hasElastic, elasticColor, paperPattern, bindingType, spiralColor },
             status: 'draft',
-            rendersGenerated: 0
+            rendersGenerated: 1
         };
         addToCart(newItem);
-        onFinish(); // Переход на экран корзины
+        onFinish();
     };
 
     return (
@@ -107,14 +117,44 @@ export const Interface = ({ onFinish }) => {
                 )}
             </div>
 
-            {/* БОЕВАЯ КНОПКА ЗАКАЗА */}
+            {/* ВИЗУАЛИЗАЦИЯ / ОФОРМЛЕНИЕ */}
             <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 z-20 border-t border-white/10 bg-[#A4B0C9]/95 dark:bg-[#060911]/95 backdrop-blur-xl">
-                <button
-                    onClick={handleAddToCart} // Вызываем новую функцию
-                    className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-xl font-black tracking-[0.2em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
-                >
-                    В Корзину
-                </button>
+                {!renderPreview ? (
+                    <div className="flex flex-col gap-2">
+                        <p className="text-[10px] text-white/40 text-center font-bold uppercase tracking-[0.2em]">Визуализация</p>
+                        <button
+                            onClick={handleGenerateRenders}
+                            className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-base font-black tracking-[0.15em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                            Сгенерировать рендеры
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-3 bg-white/10 rounded-[10px] p-3 border border-white/15">
+                            {renderPreview !== 'placeholder' ? (
+                                <img src={renderPreview} alt="render" className="w-14 h-14 rounded-[8px] object-cover border border-white/20 shrink-0" />
+                            ) : (
+                                <div className="w-14 h-14 rounded-[8px] bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-white/30 text-xl">📷</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Рендер готов</p>
+                                <p className="text-sm font-bold text-white truncate">Ежедневник {format}</p>
+                                <p className="text-[11px] text-white/50 truncate">Переплет: {bindingType === 'hard' ? 'Твердый' : 'Пружина'} · Блок: {paperPattern}</p>
+                            </div>
+                            <button onClick={() => setRenderPreview(null)} className="shrink-0 w-7 h-7 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors" title="Переснять">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleAddToCart}
+                            className="w-full py-4 bg-white text-[#1a1a1a] rounded-[11px] text-base font-black tracking-[0.15em] uppercase hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
+                        >
+                            Оформить заказ →
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     )
