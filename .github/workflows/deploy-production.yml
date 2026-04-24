@@ -64,7 +64,8 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
