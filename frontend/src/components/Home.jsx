@@ -37,7 +37,7 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
             {/* ... ШАПКА ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ... */}
             <header className="w-full px-6 py-5 flex items-center justify-between z-50">
                 <div className="flex items-center gap-3 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-sm dark:shadow-none transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                <img src="/SprooGeek.svg" alt="Spruzhuk logo" className="w-4 h-4 object-contain" />
                     <span className="font-bold text-sm tracking-wide">Spruzhuk</span>
                 </div>
 
