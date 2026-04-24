@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { loginUser, registerUser, updateUserRole } from '../api';
+import { loginUser, loginWithTelegram, registerUser, updateUserRole } from '../api';
 import apiClient from '../api';
+
+const TELEGRAM_BOT_NAME = import.meta.env.VITE_TELEGRAM_BOT_NAME;
 
 export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [step, setStep] = useState(1);
@@ -10,9 +12,10 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [pendingRole, setPendingRole] = useState(null);
-    const [googleUser, setGoogleUser] = useState(null);
+    const [socialUser, setSocialUser] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const telegramButtonRef = useRef(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -59,7 +62,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                 localStorage.setItem('token', data.access_token);
 
                 if (data.needs_role_setup) {
-                    setGoogleUser(data.user);
+                    setSocialUser(data.user);
                     setLoading(false);
                     setStep(2);
                 } else {
@@ -76,6 +79,48 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
             setLoading(false);
         },
     });
+
+    useEffect(() => {
+        if (step !== 1 || !telegramButtonRef.current || !TELEGRAM_BOT_NAME) {
+            return undefined;
+        }
+
+        window.onTelegramAuth = async (telegramUser) => {
+            setError(null);
+            setLoading(true);
+            try {
+                const data = await loginWithTelegram(telegramUser);
+                if (data.needs_role_setup) {
+                    setSocialUser(data.user);
+                    setStep(2);
+                    setLoading(false);
+                    return;
+                }
+
+                onRoleCreated?.(data.user, data.user.role, data.user.sub_role || null);
+                onClose();
+            } catch {
+                setError('Ошибка входа через Telegram. Попробуйте снова.');
+                setLoading(false);
+            }
+        };
+
+        telegramButtonRef.current.innerHTML = '';
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://telegram.org/js/telegram-widget.js?22';
+        script.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
+        script.setAttribute('data-size', 'large');
+        script.setAttribute('data-radius', '14');
+        script.setAttribute('data-userpic', 'false');
+        script.setAttribute('data-request-access', 'write');
+        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+        telegramButtonRef.current.appendChild(script);
+
+        return () => {
+            delete window.onTelegramAuth;
+        };
+    }, [step, onClose, onRoleCreated]);
 
     const selectRole = (role) => {
         if (role === 'dealer') {
@@ -94,7 +139,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         setLoading(true);
         try {
             let user;
-            if (googleUser) {
+            if (socialUser) {
                 user = await updateUserRole(role, subRole);
             } else {
                 user = await registerUser(email, password, displayName, role, subRole);
@@ -110,7 +155,7 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
             else if (msg) setError(msg);
             else setError('Ошибка при регистрации. Попробуйте снова.');
             setStep(1);
-            setGoogleUser(null);
+            setSocialUser(null);
             setLoading(false);
         }
     };
@@ -209,6 +254,12 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                             </svg>
                             Войти через Google
                         </button>
+
+                        {TELEGRAM_BOT_NAME && (
+                            <div className={`w-full mt-3 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <div ref={telegramButtonRef} className="telegram-login-wrap"></div>
+                            </div>
+                        )}
 
                         <div className="mt-6 text-center">
                             <button onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-[11px] text-gray-400 hover:text-white transition-colors">
