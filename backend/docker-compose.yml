@@ -14,19 +14,60 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  db-backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: spruzhuk_db_backup
+    restart: always
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: spruzhuk
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 120
+    volumes:
+      - ./db_backups:/backups
+    depends_on:
+      - db
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: spruzhuk_zookeeper
+    restart: always
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: spruzhuk_kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+
   backend:
     build: ./spruzhyk_backend
     container_name: spruzhuk_backend
     restart: always
     depends_on:
       - db
+      - kafka
     env_file:
       - ./spruzhyk_backend/.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
 
   app:
-    build: ../spruzhyk_backend
+    build: ./react_hosting
     container_name: spruzhuk_app
     restart: always
     depends_on:
