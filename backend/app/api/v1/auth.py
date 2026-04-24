@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse, GoogleAuthRequest, GoogleTokenResponse
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.deps import get_current_user
-from app.core.firebase_verify import verify_firebase_token
+from app.core.google_verify import exchange_google_code
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -70,9 +70,9 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
 @limiter.limit("10/minute")
 async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     try:
-        payload = await verify_firebase_token(body.firebase_token)
+        payload = await exchange_google_code(body.google_code)
     except Exception:
-        raise HTTPException(status_code=401, detail="Недействительный Firebase токен")
+        raise HTTPException(status_code=401, detail="Недействительный Google токен")
 
     email = payload.get("email")
     if not email:

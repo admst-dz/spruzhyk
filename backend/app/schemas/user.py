@@ -40,7 +40,7 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 class GoogleAuthRequest(BaseModel):
-    firebase_token: str
+    google_code: str
 
 class GoogleTokenResponse(BaseModel):
     access_token: str
