@@ -11,6 +11,7 @@ import { useConfigurator } from './store'
 import { restoreSession } from './api'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
+import { CookieBanner } from './components/CookieBanner'
 
 function App() {
     const [screen, setScreen] = useState('home');
@@ -83,6 +84,8 @@ function App() {
 
     return (
         <>
+            <CookieBanner />
+
             {/* --- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
             {showAuth && (
                 <AuthModal
