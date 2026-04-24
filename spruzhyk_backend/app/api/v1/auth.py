@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.crud import user as crud_user
 from app.models.user import User
-from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse
+from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse, GoogleAuthRequest, GoogleTokenResponse
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.deps import get_current_user
 from app.core.firebase_verify import verify_firebase_token
@@ -66,6 +66,37 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
     return {"access_token": token, "user": user}
 
 
+@router.post("/google", response_model=GoogleTokenResponse)
+@limiter.limit("10/minute")
+async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = await verify_firebase_token(body.firebase_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Недействительный Firebase токен")
+
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email не найден в токене")
+
+    user = await crud_user.get_user_by_email(db, email)
+    if not user:
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            display_name=payload.get("name", ""),
+            role="client",
+            sub_role=None,
+            token_balance=0.0,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+    needs_role_setup = user.sub_role is None
+    token = create_access_token(user.id, user.email, user.role)
+    return {"access_token": token, "user": user, "needs_role_setup": needs_role_setup}
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user=Depends(get_current_user)):
     return current_user
@@ -77,16 +108,19 @@ async def update_role(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
-    # ЗАКРЫТА УЯЗВИМОСТЬ! Теперь юзер может задать ТОЛЬКО sub_role,
-    # и только если она пустая (настройка при первом входе).
-    # Изменять role на "dealer" или "admin" он больше не может.
+    role = body.get("role")
     sub_role = body.get("sub_role")
 
-    if sub_role and current_user.sub_role is None:
-        if sub_role not in ["PL", "PKL", "KL", "KPR", "PR"]:
-            raise HTTPException(status_code=400, detail="Недопустимая роль")
+    # Разрешаем выбор роли только при первичной настройке (sub_role ещё не задан)
+    if current_user.sub_role is None:
+        if role in ("client", "dealer"):
+            current_user.role = role
 
-        current_user.sub_role = sub_role
+        if sub_role:
+            if sub_role not in ["PL", "PKL", "KL", "KPR", "PR"]:
+                raise HTTPException(status_code=400, detail="Недопустимая роль")
+            current_user.sub_role = sub_role
+
         db.add(current_user)
         await db.commit()
         await db.refresh(current_user)
