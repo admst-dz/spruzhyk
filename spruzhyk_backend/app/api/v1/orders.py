@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_pagination import Page, paginate
 from app.database import get_db
@@ -23,6 +24,7 @@ async def create_order(
 async def get_all_orders(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
+        dealer_id: Optional[str] = Query(default=None),
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
