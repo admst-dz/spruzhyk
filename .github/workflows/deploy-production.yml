@@ -3,6 +3,14 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to build'
+        required: true
+        default: 'both'
+        type: choice
+        options: [both, frontend, backend]
 
 permissions:
   contents: read
@@ -12,12 +20,13 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.result.outputs.frontend }}
+      backend: ${{ steps.result.outputs.backend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
+        if: github.event_name == 'push'
         with:
           filters: |
             frontend:
@@ -32,6 +41,16 @@ jobs:
               - 'eslint.config.*'
             backend:
               - 'spruzhyk_backend/**'
+      - id: result
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.target }}"
+            echo "frontend=$([[ $TARGET == both || $TARGET == frontend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "backend=$([[ $TARGET == both || $TARGET == backend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
+            echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
+          fi
 
   build-frontend:
     needs: changes
