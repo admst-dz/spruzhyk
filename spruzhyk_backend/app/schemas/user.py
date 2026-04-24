@@ -38,3 +38,11 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     user: UserResponse
+
+class GoogleAuthRequest(BaseModel):
+    firebase_token: str
+
+class GoogleTokenResponse(BaseModel):
+    access_token: str
+    user: UserResponse
+    needs_role_setup: bool
