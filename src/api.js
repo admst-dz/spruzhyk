@@ -29,7 +29,7 @@ export const authApi = {
 
 export const orderApi = {
     createOrder: (orderData) => apiClient.post('/orders/', orderData),
-    getAllOrders: (page = 1, size = 200, dealerId = null) => {
+    getAllOrders: (page = 1, size = 100, dealerId = null) => {
         const params = new URLSearchParams({ page, size });
         if (dealerId) params.set('dealer_id', dealerId);
         return apiClient.get(`/orders/all?${params}`);
@@ -121,7 +121,7 @@ export const fetchUserOrders = async (userId) => {
 };
 
 export const fetchAllOrders = async (dealerId = null) => {
-    const { data } = await orderApi.getAllOrders(1, 200, dealerId);
+    const { data } = await orderApi.getAllOrders(1, 100, dealerId);
     const list = data?.items || data || [];
     return list.map(normalizeOrder);
 };
