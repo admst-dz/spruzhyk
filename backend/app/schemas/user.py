@@ -28,7 +28,6 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
-    telegram_id: Optional[str] = None
     display_name: Optional[str] = None
     role: str
     sub_role: Optional[str] = None
@@ -42,15 +41,6 @@ class TokenResponse(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     google_code: str
-
-class TelegramAuthRequest(BaseModel):
-    id: int | str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    username: Optional[str] = None
-    photo_url: Optional[str] = None
-    auth_date: int
-    hash: str
 
 class GoogleTokenResponse(BaseModel):
     access_token: str
