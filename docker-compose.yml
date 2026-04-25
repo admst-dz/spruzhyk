@@ -16,8 +16,7 @@ services:
       - spruzhuk_net
 
   backend:
-    build:
-      context: ./backend
+    image: ghcr.io/admst-dz/spruzhyk-backend:latest
     container_name: spruzhuk_backend
     restart: unless-stopped
     environment:
@@ -26,19 +25,13 @@ services:
       DB_NAME: spruzhuk
       DB_HOST: db
       DB_PORT: 5432
-      TELEGRAM_AUTH_SERVICE_URL: http://telegram-auth:4100
     depends_on:
       - db
-      - telegram-auth
     networks:
       - spruzhuk_net
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: /api/v1
-        VITE_TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME:-}
+    image: ghcr.io/admst-dz/spruzhyk-frontend:latest
     container_name: spruzhuk_app
     restart: unless-stopped
     ports:
@@ -55,11 +48,7 @@ services:
       start_period: 10s
 
   frontend-render:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: /api/v1
-        VITE_TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME:-}
+    image: ghcr.io/admst-dz/spruzhyk-frontend:latest
     container_name: spruzhuk_app_render
     restart: unless-stopped
     networks:
@@ -107,18 +96,7 @@ services:
       - WATCHTOWER_POLL_INTERVAL=30
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_ROLLING_RESTART=true
-    command: spruzhuk_app spruzhuk_app_render spruzhuk_backend spruzhuk_renderer spruzhuk_telegram_auth
-
-  telegram-auth:
-    build:
-      context: ./microservices/telegram_auth
-    container_name: spruzhuk_telegram_auth
-    restart: unless-stopped
-    environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_AUTH_MAX_AGE_SECONDS: 86400
-    networks:
-      - spruzhuk_net
+    command: spruzhuk_app spruzhuk_app_render spruzhuk_backend spruzhuk_renderer
 
 networks:
   spruzhuk_net:

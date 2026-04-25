@@ -74,6 +74,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
+          build-args: |
+            VITE_API_URL=/api/v1
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
           cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache,mode=max
 
