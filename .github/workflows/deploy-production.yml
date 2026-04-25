@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'What to build'
+        description: "What to build"
         required: true
-        default: 'both'
+        default: "all"
         type: choice
-        options: [both, frontend, backend, renderer]
+        options: [all, frontend, backend, renderer, deploy-only]
 
 permissions:
   contents: read
@@ -25,6 +25,7 @@ jobs:
       renderer: ${{ steps.result.outputs.renderer }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: dorny/paths-filter@v3
         id: filter
         if: github.event_name == 'push'
@@ -32,22 +33,22 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
-              - 'Dockerfile'
             backend:
               - 'backend/**'
             renderer:
               - 'microservices/renderer/**'
+
       - id: result
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TARGET="${{ inputs.target }}"
-            echo "frontend=$([[ $TARGET == both || $TARGET == frontend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "backend=$([[ $TARGET == both || $TARGET == backend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "renderer=$([[ $TARGET == both || $TARGET == renderer ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "frontend=$([[ $TARGET == all || $TARGET == frontend ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+            echo "backend=$([[ $TARGET == all || $TARGET == backend ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+            echo "renderer=$([[ $TARGET == all || $TARGET == renderer ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           else
-            echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
-            echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
-            echo "renderer=${{ steps.filter.outputs.renderer }}" >> $GITHUB_OUTPUT
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+            echo "backend=${{ steps.filter.outputs.backend }}" >> "$GITHUB_OUTPUT"
+            echo "renderer=${{ steps.filter.outputs.renderer }}" >> "$GITHUB_OUTPUT"
           fi
 
   build-frontend:
@@ -70,8 +71,8 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
           build-args: |
@@ -100,6 +101,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-backend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
@@ -126,7 +128,51 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./microservices/renderer
+          file: ./microservices/renderer/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-renderer:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache
           cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache,mode=max
+
+  deploy:
+    needs:
+      - changes
+      - build-frontend
+      - build-backend
+      - build-renderer
+    if: >
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.build-frontend.result != 'failure' &&
+      needs.build-backend.result != 'failure' &&
+      needs.build-renderer.result != 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload production compose
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: docker-compose.prod.yml
+          target: ${{ secrets.PROD_PATH }}
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ secrets.PROD_PATH }}"
+            cat > "${{ secrets.PROD_PATH }}/.env" <<'EOF'
+            ${{ secrets.PROD_ENV_FILE }}
+            EOF
+            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            cd "${{ secrets.PROD_PATH }}"
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
