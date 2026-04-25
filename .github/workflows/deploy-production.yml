@@ -160,17 +160,38 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           port: 22
-          debug: true
           envs: COMPOSE_B64
           script: |
-            set -e
+            set -euo pipefail
+            export DOCKER_CLIENT_TIMEOUT=300
+            export COMPOSE_HTTP_TIMEOUT=300
+
+            retry() {
+              local n=1
+              local max=5
+              local delay=15
+              while true; do
+                "$@" && break || {
+                  if [ "$n" -lt "$max" ]; then
+                    n=$((n + 1))
+                    echo "Command failed. Retry $n/$max in ${delay}s: $*"
+                    sleep "$delay"
+                  else
+                    echo "Command failed after $max attempts: $*"
+                    return 1
+                  fi
+                }
+              done
+            }
+
             mkdir -p "${{ secrets.PROD_PATH }}"
             echo "$COMPOSE_B64" | base64 -d > "${{ secrets.PROD_PATH }}/docker-compose.prod.yml"
             cat > "${{ secrets.PROD_PATH }}/.env" <<'EOF'
             ${{ secrets.PROD_ENV_FILE }}
             EOF
-            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
             cd "${{ secrets.PROD_PATH }}"
-            docker compose -f docker-compose.prod.yml pull
+            retry sh -c 'echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin'
+            docker compose -f docker-compose.prod.yml config -q
+            retry docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
