@@ -150,6 +150,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure production directory exists
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            mkdir -p "${{ secrets.PROD_PATH }}"
+
       - name: Upload production compose
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -157,7 +166,7 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           source: docker-compose.prod.yml
-          target: ${{ secrets.PROD_PATH }}
+          target: ${{ secrets.PROD_PATH }}/
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
@@ -167,11 +176,11 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             set -e
-            mkdir -p "${{ secrets.PROD_PATH }}"
             cat > "${{ secrets.PROD_PATH }}/.env" <<'EOF'
             ${{ secrets.PROD_ENV_FILE }}
             EOF
             echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            ls -la "${{ secrets.PROD_PATH }}"
             cd "${{ secrets.PROD_PATH }}"
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
