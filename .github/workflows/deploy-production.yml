@@ -159,14 +159,18 @@ jobs:
           script: |
             mkdir -p "${{ secrets.PROD_PATH }}"
 
+      - name: Encode compose file
+        run: echo "COMPOSE_B64=$(base64 -w0 docker-compose.prod.yml)" >> $GITHUB_ENV
+
       - name: Upload production compose
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          source: docker-compose.prod.yml
-          target: ${{ secrets.PROD_PATH }}/
+          envs: COMPOSE_B64
+          script: |
+            echo "$COMPOSE_B64" | base64 -d > "${{ secrets.PROD_PATH }}/docker-compose.prod.yml"
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
