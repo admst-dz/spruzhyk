@@ -20,12 +20,16 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
             rotation={[0, theta, rotation]}
             scale={[scale, scale, scale * 0.6]}
         >
-            <meshPhysicalMaterial
+            <meshStandardMaterial
                 map={map}
                 transparent
+                alphaTest={0.01}
+                depthWrite={false}
                 polygonOffset
-                polygonOffsetFactor={-1}
+                polygonOffsetFactor={-10}
+                polygonOffsetUnits={-10}
                 roughness={0.4}
+                metalness={0.1}
             />
         </Decal>
     );
