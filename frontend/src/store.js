@@ -41,6 +41,7 @@ export const useConfigurator = create((set) => ({
     // --- Параметры термоса ---
     thermosBodyColor: '#C0C0C0',
     thermosCapColor: '#C0C0C0',
+    thermosCapVisible: true,
     thermosLogos: [],
     selectedThermosLogoId: null,
 
@@ -164,4 +165,5 @@ export const useConfigurator = create((set) => ({
                 : state.selectedThermosLogoId
         };
     }),
+    toggleThermosCap: () => set((state) => ({ thermosCapVisible: !state.thermosCapVisible })),
 }))

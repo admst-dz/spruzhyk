@@ -19,11 +19,12 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
             position={[posX, posY, posZ]}
             rotation={[0, theta, rotation]}
             scale={[scale, scale, scale * 0.6]}
+            renderOrder={2}
         >
             <meshStandardMaterial
                 map={map}
                 transparent
-                alphaTest={0.01}
+                alphaTest={0.15}
                 depthWrite={false}
                 polygonOffset
                 polygonOffsetFactor={-40}
@@ -54,7 +55,7 @@ function ThermosMesh({ geo, matRef, color, metalness = 0.7, roughness = 0.25, lo
 }
 
 export function Thermos(props) {
-    const { thermosBodyColor, thermosCapColor, thermosLogos } = useConfigurator();
+    const { thermosBodyColor, thermosCapColor, thermosCapVisible, thermosLogos } = useConfigurator();
     const { nodes } = useGLTF(termosModelUrl);
 
     const { bodyGeo, capGeo, otherGeos, bodyRadius } = useMemo(() => {
@@ -143,7 +144,7 @@ export function Thermos(props) {
                     bodyRadius={bodyRadius}
                 />
             )}
-            {capGeo && (
+            {capGeo && thermosCapVisible && (
                 <ThermosMesh
                     geo={capGeo}
                     matRef={capMatRef}

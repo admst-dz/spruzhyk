@@ -16,8 +16,8 @@ const palette = [
 
 export const ThermosInterface = ({ onFinish }) => {
     const {
-        thermosBodyColor,
-        setColor,
+        thermosBodyColor, thermosCapColor, thermosCapVisible,
+        setColor, toggleThermosCap,
         thermosLogos, selectedThermosLogoId,
         addThermosLogo, selectThermosLogo, removeThermosLogo,
         resetThermosLogoTransform, setThermosLogoPosition,
@@ -62,7 +62,26 @@ export const ThermosInterface = ({ onFinish }) => {
                     label="Цвет корпуса"
                     currentColor={thermosBodyColor}
                     onSelect={(c) => setColor('thermosBody', c)}
+                    defaultOpen
                 />
+
+                <div className="glass-panel rounded-[11px] p-5 flex items-center justify-between">
+                    <span className="text-xl font-bold tracking-wide">Крышка</span>
+                    <button
+                        onClick={toggleThermosCap}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${thermosCapVisible ? 'bg-white/80' : 'bg-white/20'}`}
+                    >
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full shadow transition-all duration-300 ${thermosCapVisible ? 'left-6 bg-[#1a1a1a]' : 'left-0.5 bg-white/40'}`} />
+                    </button>
+                </div>
+
+                {thermosCapVisible && (
+                    <ColorGlassList
+                        label="Цвет крышки"
+                        currentColor={thermosCapColor}
+                        onSelect={(c) => setColor('thermosCap', c)}
+                    />
+                )}
 
                 <ThermosLogoPanel
                     logos={thermosLogos}
@@ -100,7 +119,7 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
         const rect = e.currentTarget.getBoundingClientRect();
         const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 1.1);
+        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 1.8);
     };
 
     return (
@@ -203,8 +222,8 @@ export const ZoomControls = ({ zoomLevel, setZoom }) => (
     </div>
 );
 
-const GlassDropdown = ({ label, currentValue, children, isColor = false, colorValue }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const GlassDropdown = ({ label, currentValue, children, isColor = false, colorValue, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
         <div className="glass-panel rounded-[11px] transition-all overflow-hidden shadow-sm">
             <button onClick={() => setIsOpen(!isOpen)} className="w-full p-5 flex items-center justify-between hover:bg-white/10 transition">
