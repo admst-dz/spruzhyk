@@ -8,7 +8,6 @@ import termosModelUrl from '../../assets/termos3.glb?url'
 function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 0.4 }) {
     const map = useTexture(texture);
 
-    // Map horizontal position [-0.35..0.35] to angle around cylinder [-81°..+81°]
     const theta = (position[0] / 0.35) * (Math.PI * 0.45);
     const posX = Math.sin(theta) * bodyRadius;
     const posZ = Math.cos(theta) * bodyRadius;
@@ -36,10 +35,10 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
     );
 }
 
-function ThermosMesh({ geo, matRef, color, metalness = 0.7, roughness = 0.25, logos = [], bodyRadius = 0.4 }) {
+function ThermosMesh({ geo, matRef, color, metalness = 0.7, roughness = 0.25, logos = [], bodyRadius = 0.4, visible = true }) {
     return (
-        <mesh geometry={geo} castShadow receiveShadow>
-            <meshStandardMaterial ref={matRef} color={color} metalness={metalness} roughness={roughness} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
+        <mesh geometry={geo} visible={visible}>
+            <meshStandardMaterial ref={matRef} color={color} metalness={metalness} roughness={roughness} />
             {logos.map(logo => (
                 <LogoDecal
                     key={logo.id}
@@ -58,8 +57,8 @@ export function Thermos(props) {
     const { thermosBodyColor, thermosCapColor, thermosCapVisible, thermosLogos } = useConfigurator();
     const { nodes } = useGLTF(termosModelUrl);
 
-    const { bodyGeo, capGeo, otherGeos, bodyRadius } = useMemo(() => {
-        if (!nodes) return { bodyGeo: null, capGeo: null, otherGeos: [], bodyRadius: 0.4 };
+    const { bodyGeo, capGeo, bodyRadius } = useMemo(() => {
+        if (!nodes) return { bodyGeo: null, capGeo: null, bodyRadius: 0.4 };
 
         const meshEntries = Object.entries(nodes)
             .filter(([, n]) => n.geometry)
@@ -69,12 +68,18 @@ export function Thermos(props) {
                 return { name, geo, bbox: geo.boundingBox };
             });
 
-        if (meshEntries.length === 0) return { bodyGeo: null, capGeo: null, otherGeos: [], bodyRadius: 0.4 };
+        console.log('[Thermos] meshes found:', meshEntries.map(e => ({
+            name: e.name,
+            centerY: ((e.bbox.max.y + e.bbox.min.y) / 2).toFixed(3),
+            vol: ((e.bbox.max.x - e.bbox.min.x) * (e.bbox.max.y - e.bbox.min.y) * (e.bbox.max.z - e.bbox.min.z)).toFixed(3),
+        })));
+
+        if (meshEntries.length === 0) return { bodyGeo: null, capGeo: null, bodyRadius: 0.4 };
 
         if (meshEntries.length === 1) {
             const b = meshEntries[0].bbox;
             const r = Math.max(Math.abs(b.max.x), Math.abs(b.min.x), Math.abs(b.max.z), Math.abs(b.min.z));
-            return { bodyGeo: meshEntries[0].geo, capGeo: null, otherGeos: [], bodyRadius: r || 0.4 };
+            return { bodyGeo: meshEntries[0].geo, capGeo: null, bodyRadius: r || 0.4 };
         }
 
         // Name-based detection
@@ -88,12 +93,27 @@ export function Thermos(props) {
             }
         }
 
-        // Geometric fallback: cap = mesh with highest center Y (sits on top)
+        // Geometric fallback: cap = smallest volume mesh that sits in the top 30% by Y
         if (capIdx === -1) {
-            let maxY = -Infinity;
+            const maxY = Math.max(...meshEntries.map(e => e.bbox.max.y));
+            const minY = Math.min(...meshEntries.map(e => e.bbox.min.y));
+            const threshold = minY + (maxY - minY) * 0.7;
+            let minVol = Infinity;
             for (let i = 0; i < meshEntries.length; i++) {
                 const centerY = (meshEntries[i].bbox.max.y + meshEntries[i].bbox.min.y) / 2;
-                if (centerY > maxY) { maxY = centerY; capIdx = i; }
+                if (centerY >= threshold) {
+                    const b = meshEntries[i].bbox;
+                    const vol = (b.max.x - b.min.x) * (b.max.y - b.min.y) * (b.max.z - b.min.z);
+                    if (vol < minVol) { minVol = vol; capIdx = i; }
+                }
+            }
+            // If no mesh in top 30%, fall back to highest center Y
+            if (capIdx === -1) {
+                let maxCenterY = -Infinity;
+                for (let i = 0; i < meshEntries.length; i++) {
+                    const centerY = (meshEntries[i].bbox.max.y + meshEntries[i].bbox.min.y) / 2;
+                    if (centerY > maxCenterY) { maxCenterY = centerY; capIdx = i; }
+                }
             }
         }
 
@@ -113,14 +133,11 @@ export function Thermos(props) {
         const bb = bodyEntry.bbox;
         const radius = Math.max(Math.abs(bb.max.x), Math.abs(bb.min.x), Math.abs(bb.max.z), Math.abs(bb.min.z)) || 0.4;
 
-        const otherGeos = meshEntries
-            .filter((_, i) => i !== bodyIdx && i !== capIdx)
-            .map(e => ({ name: e.name, geo: e.geo }));
+        console.log('[Thermos] body:', meshEntries[bodyIdx]?.name, '| cap:', meshEntries[capIdx]?.name);
 
         return {
             bodyGeo: bodyEntry.geo,
             capGeo: capIdx >= 0 ? meshEntries[capIdx].geo : null,
-            otherGeos,
             bodyRadius: radius,
         };
     }, [nodes]);
@@ -144,20 +161,16 @@ export function Thermos(props) {
                     bodyRadius={bodyRadius}
                 />
             )}
-            {capGeo && thermosCapVisible && (
+            {capGeo && (
                 <ThermosMesh
                     geo={capGeo}
                     matRef={capMatRef}
                     color={thermosCapColor}
                     metalness={0.5}
                     roughness={0.35}
+                    visible={thermosCapVisible}
                 />
             )}
-            {otherGeos.map(({ name, geo }) => (
-                <mesh key={name} geometry={geo} castShadow receiveShadow>
-                    <meshStandardMaterial color={thermosBodyColor} metalness={0.7} roughness={0.25} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-                </mesh>
-            ))}
         </group>
     );
 }
