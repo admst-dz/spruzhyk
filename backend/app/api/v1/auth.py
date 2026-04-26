@@ -25,28 +25,6 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 
-@router.post("/google", response_model=GoogleTokenResponse)
-@limiter.limit("10/minute")
-async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
-    try:
-        payload = await exchange_google_code(body.google_code)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Недействительный Google токен: {e}")
-
-    email = payload.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Email не найден в токене")
-
-
-def _build_display_name(payload: dict) -> str:
-    full_name = " ".join(filter(None, [payload.get("first_name"), payload.get("last_name")])).strip()
-    if full_name:
-        return full_name
-    if payload.get("username"):
-        return f"@{payload['username']}"
-    return "Telegram User"
-
-
 @router.post("/register", response_model=TokenResponse)
 @limiter.limit("5/minute")  # Защита от спам-регистраций
 async def register(request: Request, data: UserRegister, db: AsyncSession = Depends(get_db)):
@@ -101,9 +79,9 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
 @limiter.limit("10/minute")
 async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     try:
-        payload = await verify_firebase_token(body.firebase_token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Недействительный Google токен")
+        payload = await exchange_google_code(body.google_code)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Недействительный Google токен: {e}")
 
     email = payload.get("email")
     if not email:
