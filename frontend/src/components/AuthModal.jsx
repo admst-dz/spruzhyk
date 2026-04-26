@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { loginUser, loginWithTelegram, registerUser, updateUserRole } from '../api';
+import { loginUser, registerUser, updateUserRole } from '../api';
 import apiClient from '../api';
-
-const TELEGRAM_BOT_NAME = import.meta.env.VITE_TELEGRAM_BOT_NAME;
 
 export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [step, setStep] = useState(1);
@@ -15,7 +13,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     const [socialUser, setSocialUser] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const telegramButtonRef = useRef(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -80,48 +77,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
         },
     });
 
-    useEffect(() => {
-        if (step !== 1 || !telegramButtonRef.current || !TELEGRAM_BOT_NAME) {
-            return undefined;
-        }
-
-        window.onTelegramAuth = async (telegramUser) => {
-            setError(null);
-            setLoading(true);
-            try {
-                const data = await loginWithTelegram(telegramUser);
-                if (data.needs_role_setup) {
-                    setSocialUser(data.user);
-                    setStep(2);
-                    setLoading(false);
-                    return;
-                }
-
-                onRoleCreated?.(data.user, data.user.role, data.user.sub_role || null);
-                onClose();
-            } catch {
-                setError('Ошибка входа через Telegram. Попробуйте снова.');
-                setLoading(false);
-            }
-        };
-
-        telegramButtonRef.current.innerHTML = '';
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://telegram.org/js/telegram-widget.js?22';
-        script.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-radius', '14');
-        script.setAttribute('data-userpic', 'false');
-        script.setAttribute('data-request-access', 'write');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        telegramButtonRef.current.appendChild(script);
-
-        return () => {
-            delete window.onTelegramAuth;
-        };
-    }, [step, onClose, onRoleCreated]);
-
     const selectRole = (role) => {
         if (role === 'dealer') {
             finishRegistration(role, null);
@@ -161,16 +116,24 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-xl p-4 font-sans text-white">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-xl p-4 font-sans text-white"
+            onClick={onClose}
+        >
 
-            <button
-                onClick={onClose}
-                className="absolute top-6 left-6 flex items-center gap-2 px-5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-full backdrop-blur-md text-sm font-bold text-gray-300"
+            <div
+                className="bg-[#1A1F2E]/60 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] w-full max-w-md p-8 md:p-10 relative animate-fade-in overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
             >
-                <span>←</span> Назад
-            </button>
-
-            <div className="bg-[#1A1F2E]/60 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] w-full max-w-md p-8 md:p-10 relative animate-fade-in overflow-hidden">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/15 transition-colors text-gray-400 hover:text-white"
+                    aria-label="Закрыть"
+                >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                    </svg>
+                </button>
 
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-white/5 blur-[50px] rounded-full pointer-events-none"></div>
 
@@ -254,12 +217,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                             </svg>
                             Войти через Google
                         </button>
-
-                        {TELEGRAM_BOT_NAME && (
-                            <div className={`w-full mt-3 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-                                <div ref={telegramButtonRef} className="telegram-login-wrap"></div>
-                            </div>
-                        )}
 
                         <div className="mt-6 text-center">
                             <button onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-[11px] text-gray-400 hover:text-white transition-colors">

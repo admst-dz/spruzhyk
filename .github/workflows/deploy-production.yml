@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'What to build'
+        description: "What to build"
         required: true
-        default: 'both'
+        default: "all"
         type: choice
-        options: [both, frontend, backend, renderer]
+        options: [all, frontend, backend, renderer, deploy-only]
 
 permissions:
   contents: read
@@ -42,13 +42,13 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TARGET="${{ inputs.target }}"
-            echo "frontend=$([[ $TARGET == both || $TARGET == frontend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "backend=$([[ $TARGET == both || $TARGET == backend ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "renderer=$([[ $TARGET == both || $TARGET == renderer ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "frontend=$([[ $TARGET == all || $TARGET == frontend ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+            echo "backend=$([[ $TARGET == all || $TARGET == backend ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+            echo "renderer=$([[ $TARGET == all || $TARGET == renderer ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           else
-            echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
-            echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
-            echo "renderer=${{ steps.filter.outputs.renderer }}" >> $GITHUB_OUTPUT
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+            echo "backend=${{ steps.filter.outputs.backend }}" >> "$GITHUB_OUTPUT"
+            echo "renderer=${{ steps.filter.outputs.renderer }}" >> "$GITHUB_OUTPUT"
           fi
 
   build-frontend:
@@ -71,9 +71,12 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend # <--- ИСПРАВЛЕНО: Сборка строго из папки frontend
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
+          build-args: |
+            VITE_API_URL=/api/v1
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
           cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache,mode=max
 
@@ -98,6 +101,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-backend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-backend:cache
@@ -123,8 +127,74 @@ jobs:
       - name: Build and push renderer
         uses: docker/build-push-action@v6
         with:
-          context: ./microservices/renderer # Было правильно, оставил как есть
+          context: ./microservices/renderer
+          file: ./microservices/renderer/Dockerfile
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-renderer:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache
           cache-to: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache,mode=max
+
+  deploy:
+    needs:
+      - changes
+      - build-frontend
+      - build-backend
+      - build-renderer
+    if: >
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.build-frontend.result != 'failure' &&
+      needs.build-backend.result != 'failure' &&
+      needs.build-renderer.result != 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Encode compose file
+        run: |
+          echo "COMPOSE_B64=$(base64 -w0 docker-compose.prod.yml)" >> $GITHUB_ENV
+          PROD_PATH="${{ secrets.PROD_PATH }}"
+          echo "DEPLOY_PATH=${PROD_PATH//$'\n'/}" >> $GITHUB_ENV
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: 22
+          envs: COMPOSE_B64,DEPLOY_PATH
+          script: |
+            set -euo pipefail
+            export DOCKER_CLIENT_TIMEOUT=300
+            export COMPOSE_HTTP_TIMEOUT=300
+
+            retry() {
+              local n=1
+              local max=5
+              local delay=15
+              while true; do
+                "$@" && break || {
+                  if [ "$n" -lt "$max" ]; then
+                    n=$((n + 1))
+                    echo "Command failed. Retry $n/$max in ${delay}s: $*"
+                    sleep "$delay"
+                  else
+                    echo "Command failed after $max attempts: $*"
+                    return 1
+                  fi
+                }
+              done
+            }
+
+            mkdir -p "$DEPLOY_PATH"
+            echo "$COMPOSE_B64" | base64 -d > "$DEPLOY_PATH/docker-compose.prod.yml"
+            cat > "$DEPLOY_PATH/.env" <<'EOF'
+            ${{ secrets.PROD_ENV_FILE }}
+            EOF
+            cd "$DEPLOY_PATH"
+            retry sh -c 'echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin'
+            docker compose -f docker-compose.prod.yml config -q
+            retry docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
