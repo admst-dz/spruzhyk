@@ -17,10 +17,10 @@ function ThermosPreviewScene() {
 
     return (
         <group ref={groupRef}>
-            {meshes.map(([name, node], i) => (
+            {meshes.map(([name, node]) => (
                 <mesh key={name} geometry={node.geometry} castShadow receiveShadow>
                     <meshStandardMaterial
-                        color={i === meshes.length - 1 ? '#1a1a1a' : '#C0C0C0'}
+                        color={'#C0C0C0'}
                         metalness={0.8}
                         roughness={0.2}
                     />

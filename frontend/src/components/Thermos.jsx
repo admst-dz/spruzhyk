@@ -26,8 +26,8 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
                 alphaTest={0.01}
                 depthWrite={false}
                 polygonOffset
-                polygonOffsetFactor={-10}
-                polygonOffsetUnits={-10}
+                polygonOffsetFactor={-20}
+                polygonOffsetUnits={-20}
                 roughness={0.4}
                 metalness={0.1}
             />

@@ -100,7 +100,7 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
         const rect = e.currentTarget.getBoundingClientRect();
         const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 0.7);
+        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 1.1);
     };
 
     return (
@@ -144,7 +144,7 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
                                 className="absolute w-4 h-4 bg-white rounded-full shadow-lg border-2 border-white/80 pointer-events-none"
                                 style={{
                                     left: `${(selected.position[0] / 0.35 + 1) / 2 * 100}%`,
-                                    top: `${(1 - (selected.position[1] / 0.7 + 1) / 2) * 100}%`,
+                                    top: `${(1 - (selected.position[1] / 1.1 + 1) / 2) * 100}%`,
                                     transform: 'translate(-50%, -50%)'
                                 }}
                             />
