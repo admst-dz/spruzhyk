@@ -5,9 +5,9 @@ services:
     container_name: spruzhuk_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: spruzhuk
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5433:5432"
     volumes:
@@ -17,14 +17,16 @@ services:
 
   backend:
     image: ghcr.io/admst-dz/spruzhyk-backend:latest
+    pull_policy: always
     container_name: spruzhuk_backend
     restart: unless-stopped
     environment:
-      DB_USER: postgres
-      DB_PASSWORD: rootpassword
-      DB_NAME: spruzhuk
-      DB_HOST: db
-      DB_PORT: 5432
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       - db
     networks:
@@ -32,6 +34,7 @@ services:
 
   frontend:
     image: ghcr.io/admst-dz/spruzhyk-frontend:latest
+    pull_policy: always
     container_name: spruzhuk_app
     restart: unless-stopped
     ports:
@@ -49,6 +52,7 @@ services:
 
   frontend-render:
     image: ghcr.io/admst-dz/spruzhyk-frontend:latest
+    pull_policy: always
     container_name: spruzhuk_app_render
     restart: unless-stopped
     networks:
@@ -62,6 +66,7 @@ services:
 
   renderer:
     image: ghcr.io/admst-dz/spruzhyk-renderer:latest
+    pull_policy: always
     container_name: spruzhuk_renderer
     restart: unless-stopped
     command:
@@ -81,22 +86,6 @@ services:
         condition: service_healthy
     networks:
       - spruzhuk_net
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: spruzhuk_watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /root/.docker:/config
-    environment:
-      - DOCKER_API_VERSION=1.41
-      - DOCKER_CONFIG=/config
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=30
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-      - WATCHTOWER_ROLLING_RESTART=true
-    command: spruzhuk_app spruzhuk_app_render spruzhuk_backend spruzhuk_renderer
 
 networks:
   spruzhuk_net:

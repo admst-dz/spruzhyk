@@ -1,5 +1,3 @@
-export const isTelegramPlaceholderEmail = (email = '') => email.endsWith('@telegram.local');
-
 export const getUserDisplayName = (user) => {
     if (!user) return '';
     if (user.display_name) return user.display_name;
@@ -9,6 +7,5 @@ export const getUserDisplayName = (user) => {
 
 export const getUserSecondaryLabel = (user) => {
     if (!user) return '';
-    if (isTelegramPlaceholderEmail(user.email || '')) return 'Telegram';
     return user.email || '';
 };
