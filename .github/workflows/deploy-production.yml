@@ -25,6 +25,7 @@ jobs:
       renderer: ${{ steps.result.outputs.renderer }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: dorny/paths-filter@v3
         id: filter
         if: github.event_name == 'push'
@@ -32,11 +33,11 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
-              - 'Dockerfile'
             backend:
               - 'backend/**'
             renderer:
               - 'microservices/renderer/**'
+
       - id: result
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -70,8 +71,7 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./frontend # <--- ИСПРАВЛЕНО: Сборка строго из папки frontend
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-frontend:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-frontend:cache
@@ -123,7 +123,7 @@ jobs:
       - name: Build and push renderer
         uses: docker/build-push-action@v6
         with:
-          context: ./microservices/renderer
+          context: ./microservices/renderer # Было правильно, оставил как есть
           push: true
           tags: ghcr.io/admst-dz/spruzhyk-renderer:latest
           cache-from: type=registry,ref=ghcr.io/admst-dz/spruzhyk-renderer:cache
