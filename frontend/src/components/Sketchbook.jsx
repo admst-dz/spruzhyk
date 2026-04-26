@@ -8,8 +8,8 @@ import * as THREE from 'three'
 function LogoDecal({ texture, x, y, z, rotation = 0, scale = 0.6 }) {
     const map = useTexture(texture);
     return (
-        <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]} renderOrder={1}>
-            <meshPhysicalMaterial map={map} transparent depthTest depthWrite={false} polygonOffset polygonOffsetFactor={-10} roughness={0.8}/>
+        <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]}>
+            <meshStandardMaterial map={map} transparent alphaTest={0.01} depthWrite={false} polygonOffset polygonOffsetFactor={-20} polygonOffsetUnits={-20} roughness={0.8}/>
         </Decal>
     );
 }
@@ -95,7 +95,7 @@ export function Sketchbook(props) {
                     <meshStandardMaterial ref={coverMat} color={coverColor} roughness={0.8} />
                 </mesh>
 
-                <mesh position={[holeOffset/1.2, 0, zPaperCenter]} receiveShadow>
+                <mesh position={[holeOffset/1.2, 0, zPaperCenter + 0.001]} receiveShadow>
                     <boxGeometry args={[dims.w - holeOffset, dims.h - 0.05, paperThick]} />
                     <meshStandardMaterial color="#fcfcfc" roughness={0.9} />
                 </mesh>

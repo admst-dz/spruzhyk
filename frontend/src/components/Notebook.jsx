@@ -10,7 +10,7 @@ function LogoDecal({ texture, x, y, z, rotation = 0, scale = 0.6 }) {
     const map = useTexture(texture);
     return (
         <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]}>
-            <meshPhysicalMaterial map={map} transparent polygonOffset polygonOffsetFactor={-1} roughness={0.6}/>
+            <meshStandardMaterial map={map} transparent alphaTest={0.01} depthWrite={false} polygonOffset polygonOffsetFactor={-20} polygonOffsetUnits={-20} roughness={0.6}/>
         </Decal>
     );
 }
