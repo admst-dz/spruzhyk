@@ -27,8 +27,17 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 
-def _build_telegram_email(telegram_id: str) -> str:
-    return f"tg_{telegram_id}@telegram.local"
+@router.post("/google", response_model=GoogleTokenResponse)
+@limiter.limit("10/minute")
+async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = await exchange_google_code(body.google_code)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Недействительный Google токен: {e}")
+
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email не найден в токене")
 
 
 def _build_display_name(payload: dict) -> str:
