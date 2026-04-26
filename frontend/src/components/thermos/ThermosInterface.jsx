@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { useConfigurator, captureRender } from '../../store';
 
 const palette = [
@@ -56,14 +56,24 @@ export const ThermosInterface = ({ onFinish }) => {
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-6 pt-2 overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-40">
+            <div className="px-4 md:px-6 pt-3 pb-3 shrink-0">
+                <div className="glass-panel rounded-[11px] px-4 py-3">
+                    <span className="text-[11px] font-bold uppercase tracking-widest opacity-50 block mb-2">Цвет корпуса</span>
+                    <div className="flex flex-wrap gap-2">
+                        {palette.map(c => (
+                            <button
+                                key={c.name}
+                                title={c.name}
+                                onClick={() => setColor('thermosBody', c.bg)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all active:scale-90 ${thermosBodyColor === c.bg ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/60'}`}
+                                style={{ backgroundColor: c.bg }}
+                            />
+                        ))}
+                    </div>
+                </div>
+            </div>
 
-                <ColorGlassList
-                    label="Цвет корпуса"
-                    currentColor={thermosBodyColor}
-                    onSelect={(c) => setColor('thermosBody', c)}
-                    defaultOpen
-                />
+            <div className="flex-1 px-4 md:px-6 pt-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-40">
 
                 <div className="glass-panel rounded-[11px] p-5 flex items-center justify-between">
                     <span className="text-xl font-bold tracking-wide">Крышка</span>
@@ -214,38 +224,4 @@ export const ZoomControls = ({ zoomLevel, setZoom }) => (
     </div>
 );
 
-const GlassDropdown = ({ label, currentValue, children, isColor = false, colorValue, defaultOpen = false }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
-    return (
-        <div className="glass-panel rounded-[11px] transition-all overflow-hidden shadow-sm">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full p-5 flex items-center justify-between hover:bg-white/10 transition">
-                <span className="text-xl font-bold tracking-wide">{label}</span>
-                <div className="flex items-center gap-3">
-                    {isColor ? (
-                        <div className="w-6 h-6 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: colorValue }} />
-                    ) : (
-                        <span className="font-bold opacity-80 text-sm bg-white/10 px-2 py-1 rounded-[6px]">{currentValue}</span>
-                    )}
-                    <span className={`transform transition-transform duration-300 text-xl opacity-70 ${isOpen ? 'rotate-180' : ''}`}>⌄</span>
-                </div>
-            </button>
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-2 border-t border-white/10 bg-black/5">{children}</div>
-            </div>
-        </div>
-    );
-};
 
-const ColorGlassList = ({ label, currentColor, onSelect, defaultOpen = false }) => (
-    <GlassDropdown label={label} isColor={true} colorValue={currentColor} defaultOpen={defaultOpen}>
-        <div className="flex flex-col gap-1">
-            {palette.map((c) => (
-                <button key={c.name} onClick={() => onSelect(c.bg)} className={`p-3 rounded-[6px] flex items-center gap-3 transition-colors ${currentColor === c.bg ? 'bg-white/30 shadow-sm border border-white/20' : 'hover:bg-white/10'}`}>
-                    <div className="w-8 h-8 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: c.bg }} />
-                    <span className="font-bold text-sm">{c.name}</span>
-                    {currentColor === c.bg && <span className="ml-auto text-xl">✓</span>}
-                </button>
-            ))}
-        </div>
-    </GlassDropdown>
-);
