@@ -16,7 +16,7 @@ const palette = [
 
 export const ThermosInterface = ({ onFinish }) => {
     const {
-        thermosBodyColor, thermosCapColor,
+        thermosBodyColor,
         setColor,
         thermosLogos, selectedThermosLogoId,
         addThermosLogo, selectThermosLogo, removeThermosLogo,
@@ -51,28 +51,18 @@ export const ThermosInterface = ({ onFinish }) => {
 
             <div className="flex items-end gap-4 px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
                 <span className="text-2xl md:text-3xl font-bold leading-none opacity-100">Термос</span>
-                <div className="ml-auto">
+                <div className="ml-auto md:hidden">
                     <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
                 </div>
             </div>
 
             <div className="flex-1 px-4 md:px-6 pt-2 overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-40">
 
-                <div className="glass-panel rounded-[11px] overflow-hidden">
-                    <ColorGlassList
-                        label="Цвет корпуса"
-                        currentColor={thermosBodyColor}
-                        onSelect={(c) => setColor('thermosBody', c)}
-                    />
-                </div>
-
-                <div className="glass-panel rounded-[11px] overflow-hidden">
-                    <ColorGlassList
-                        label="Цвет крышки"
-                        currentColor={thermosCapColor}
-                        onSelect={(c) => setColor('thermosCap', c)}
-                    />
-                </div>
+                <ColorGlassList
+                    label="Цвет корпуса"
+                    currentColor={thermosBodyColor}
+                    onSelect={(c) => setColor('thermosBody', c)}
+                />
 
                 <ThermosLogoPanel
                     logos={thermosLogos}
@@ -141,6 +131,8 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
                             className="relative w-full aspect-square bg-white/8 rounded-[10px] border border-white/15 cursor-crosshair touch-none select-none overflow-hidden"
                             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updatePos(e); }}
                             onPointerMove={(e) => { if (e.buttons) updatePos(e); }}
+                            onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+                            onPointerCancel={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
                         >
                             <div className="absolute inset-0 flex items-center pointer-events-none">
                                 <div className="w-full h-px bg-white/15" />

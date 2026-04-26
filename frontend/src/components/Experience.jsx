@@ -103,7 +103,8 @@ export const Experience = () => {
             <PresentationControls
                 speed={isMobile ? 10.0 : 1.8}
                 global
-                polar={[-0.1, Math.PI / 4]}
+                azimuth={[-Math.PI, Math.PI]}
+                polar={activeProduct === 'thermos' ? [-Math.PI / 3, Math.PI / 3] : [-0.1, Math.PI / 4]}
             >
                 {/* contactShadow={false} -> Убирает тень снизу */}
                 <Stage environment={null} intensity={0} contactShadow={false}>
