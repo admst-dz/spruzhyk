@@ -12,6 +12,8 @@ from app.services.order_service import OrderService
 from app.crud import order as crud_order
 from app.core.deps import get_current_user
 
+from app.core.kafka import kafka_producer
+
 router = APIRouter()
 
 os.makedirs("uploads/renders", exist_ok=True)
@@ -46,15 +48,24 @@ async def create_order(
     if render_url:
         order.configuration["server_render_url"] = render_url
 
-    return await OrderService.create_new_order(db, order, current_user.id)
+    new_order = await OrderService.create_new_order(db, order, current_user.id)
 
-@router.post("/", response_model=OrderResponse)
-async def create_order(
-        order: OrderCreate,
-        db: AsyncSession = Depends(get_db),
-        current_user=Depends(get_current_user),
-):
-    return await OrderService.create_new_order(db, order, current_user.id)
+    # 3. ОТПРАВЛЯЕМ СОБЫТИЕ В KAFKA
+    # Это позволяет другим микросервисам (например, сервису отправки email
+    # или интеграции с Битрикс24) узнать, что заказ создан, и начать работу в фоне.
+    await kafka_producer.send_message(
+        topic="order_events",
+        message={
+            "event_type": "ORDER_CREATED",
+            "order_id": str(new_order.id),
+            "user_id": current_user.id,
+            "user_email": current_user.email,
+            "render_url": render_url,
+            "status": new_order.status
+        }
+    )
+
+    return new_order
 
 
 @router.get("/all", response_model=Page[OrderResponse])
@@ -89,7 +100,19 @@ async def update_order_status(
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
+
     order = await crud_order.update_status(db, order_id, status_data.status, status_data.comment)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    await kafka_producer.send_message(
+        topic="order_events",
+        message={
+            "event_type": "ORDER_STATUS_CHANGED",
+            "order_id": str(order.id),
+            "new_status": status_data.status,
+            "comment": status_data.comment
+        }
+    )
+
     return order
