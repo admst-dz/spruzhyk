@@ -143,8 +143,8 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
                             <div
                                 className="absolute w-4 h-4 bg-white rounded-full shadow-lg border-2 border-white/80 pointer-events-none"
                                 style={{
-                                    left: `${(selected.position[0] / 0.35 + 1) / 2 * 100}%`,
-                                    top: `${(1 - (selected.position[1] / 1.1 + 1) / 2) * 100}%`,
+                                    left: `${(selected.position[0] / 0.5 + 1) / 2 * 100}%`,
+                                    top: `${(1 - (selected.position[1] / 1.7 + 1) / 2) * 100}%`,
                                     transform: 'translate(-50%, -50%)'
                                 }}
                             />
