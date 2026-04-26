@@ -11,7 +11,7 @@ import { useConfigurator } from './store'
 import { restoreSession } from './api'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
-import { ThermosInterface } from './components/ThermosInterface'
+import { ThermosInterface } from './components/thermos/ThermosInterface'
 import { CookieBanner } from './components/CookieBanner'
 
 function App() {

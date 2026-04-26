@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useConfigurator, captureRender } from '../store';
+import { useConfigurator, captureRender } from '../../store';
 
 const palette = [
     { name: 'Серебро',  bg: '#C0C0C0' },
@@ -74,14 +74,6 @@ export const ThermosInterface = ({ onFinish }) => {
                         <span className={`absolute top-0.5 w-5 h-5 rounded-full shadow transition-all duration-300 ${thermosCapVisible ? 'left-6 bg-[#1a1a1a]' : 'left-0.5 bg-white/40'}`} />
                     </button>
                 </div>
-
-                {thermosCapVisible && (
-                    <ColorGlassList
-                        label="Цвет крышки"
-                        currentColor={thermosCapColor}
-                        onSelect={(c) => setColor('thermosCap', c)}
-                    />
-                )}
 
                 <ThermosLogoPanel
                     logos={thermosLogos}
@@ -244,8 +236,8 @@ const GlassDropdown = ({ label, currentValue, children, isColor = false, colorVa
     );
 };
 
-const ColorGlassList = ({ label, currentColor, onSelect }) => (
-    <GlassDropdown label={label} isColor={true} colorValue={currentColor}>
+const ColorGlassList = ({ label, currentColor, onSelect, defaultOpen = false }) => (
+    <GlassDropdown label={label} isColor={true} colorValue={currentColor} defaultOpen={defaultOpen}>
         <div className="flex flex-col gap-1">
             {palette.map((c) => (
                 <button key={c.name} onClick={() => onSelect(c.bg)} className={`p-3 rounded-[6px] flex items-center gap-3 transition-colors ${currentColor === c.bg ? 'bg-white/30 shadow-sm border border-white/20' : 'hover:bg-white/10'}`}>

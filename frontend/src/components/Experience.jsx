@@ -1,7 +1,7 @@
 import { PresentationControls, Stage, Environment } from '@react-three/drei'
 import { Notebook } from './Notebook'
 import { Calendar } from './Calendar'
-import { Thermos } from './Thermos'
+import { Thermos } from './thermos/Thermos'
 import { useConfigurator, registerWebGLCanvas } from '../store'
 import { useEffect, useRef, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
