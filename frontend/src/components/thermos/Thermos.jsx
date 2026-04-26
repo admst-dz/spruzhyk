@@ -1,9 +1,9 @@
 import React, { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { easing } from 'maath'
-import { useConfigurator } from '../store'
+import { useConfigurator } from '../../store'
 import { Decal, useTexture, useGLTF } from '@react-three/drei'
-import termosModelUrl from '../assets/termos3.glb?url'
+import termosModelUrl from '../../assets/termos3.glb?url'
 
 function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 0.4 }) {
     const map = useTexture(texture);
@@ -27,8 +27,8 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
                 alphaTest={0.15}
                 depthWrite={false}
                 polygonOffset
-                polygonOffsetFactor={-40}
-                polygonOffsetUnits={-40}
+                polygonOffsetFactor={-4}
+                polygonOffsetUnits={-4}
                 roughness={0.4}
                 metalness={0.1}
             />
@@ -39,7 +39,7 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
 function ThermosMesh({ geo, matRef, color, metalness = 0.7, roughness = 0.25, logos = [], bodyRadius = 0.4 }) {
     return (
         <mesh geometry={geo} castShadow receiveShadow>
-            <meshStandardMaterial ref={matRef} color={color} metalness={metalness} roughness={roughness} />
+            <meshStandardMaterial ref={matRef} color={color} metalness={metalness} roughness={roughness} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
             {logos.map(logo => (
                 <LogoDecal
                     key={logo.id}
@@ -155,7 +155,7 @@ export function Thermos(props) {
             )}
             {otherGeos.map(({ name, geo }) => (
                 <mesh key={name} geometry={geo} castShadow receiveShadow>
-                    <meshStandardMaterial color={thermosBodyColor} metalness={0.7} roughness={0.25} />
+                    <meshStandardMaterial color={thermosBodyColor} metalness={0.7} roughness={0.25} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
                 </mesh>
             ))}
         </group>

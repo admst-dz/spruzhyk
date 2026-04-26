@@ -5,7 +5,7 @@ import { useConfigurator } from "../store";
 import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
-import { Thermos } from './Thermos';
+import { Thermos } from './thermos/Thermos';
 import { getUserDisplayName, getUserSecondaryLabel } from '../utils/user';
 
 const TabBtn = ({ active, children, onClick }) => (
