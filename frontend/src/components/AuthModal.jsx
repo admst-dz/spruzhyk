@@ -169,13 +169,6 @@ export const AuthModal = ({ onClose, onRoleCreated }) => {
                             Войти через Google
                         </button>
 
-                        {/* TELEGRAM */}
-                        {TELEGRAM_BOT_NAME && (
-                            <div className={`w-full mt-3 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-                                <div ref={telegramButtonRef} className="telegram-login-wrap"></div>
-                            </div>
-                        )}
-
                         <div className="mt-6 text-center">
                             <button onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-[11px] text-gray-400 hover:text-white transition-colors">
                                 {isRegistering ? 'Уже есть аккаунт? ' : 'Нет аккаунта? '}
