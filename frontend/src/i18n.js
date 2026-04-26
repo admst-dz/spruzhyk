@@ -13,6 +13,8 @@ export const translations = {
         calendarDesc: "Перекидной • 12 мес",
         sketchbook: "Блокнот",
         sketchbookDesc: "A5 • 100 г/м²",
+        thermos: "Термос",
+        thermosDesc: "500 мл • Нержавеющая сталь",
         openBtn: "Открыть конструктор →",
     },
     en: {
@@ -29,6 +31,8 @@ export const translations = {
         calendarDesc: "Flip • 12 months",
         sketchbook: "Notepad",
         sketchbookDesc: "A5 • 100 g/m²",
+        thermos: "Thermos",
+        thermosDesc: "500 ml • Stainless Steel",
         openBtn: "Open configurator →",
     },
     by: {
@@ -45,6 +49,8 @@ export const translations = {
         calendarDesc: "Перакідны • 12 мес",
         sketchbook: "Блакнот",
         sketchbookDesc: "A5 • 100 г/м²",
+        thermos: "Тэрмас",
+        thermosDesc: "500 мл • Нержавеючая сталь",
         openBtn: "Адкрыць канструктар →",
     }
 };

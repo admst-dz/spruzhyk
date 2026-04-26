@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
+import { Thermos } from './Thermos';
 
 export const Order = ({ onBack, onSuccess }) => {
     const {
@@ -103,6 +104,7 @@ export const Order = ({ onBack, onSuccess }) => {
                                         <Stage environment={null} intensity={0} contactShadow={false}>
                                             {activeProduct === 'notebook' && <Notebook />}
                                             {activeProduct === 'sketchbook' && <Sketchbook />}
+                                            {activeProduct === 'thermos' && <Thermos />}
                                         </Stage>
                                     </PresentationControls>
                                 </Canvas>

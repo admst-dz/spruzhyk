@@ -22,7 +22,7 @@ export const captureRender = () => {
 }
 
 export const useConfigurator = create((set) => ({
-    activeProduct: 'notebook', // 'notebook' | 'calendar' | 'sketchbook'
+    activeProduct: 'notebook', // 'notebook' | 'calendar' | 'sketchbook' | 'thermos'
     applyRenderConfig: (config) => set((state) => ({ ...state, ...config })),
 
     // --- Параметры 3D модели ---
@@ -37,6 +37,12 @@ export const useConfigurator = create((set) => ({
     logos: [],
     selectedLogoId: null,
     zoomLevel: 1,
+
+    // --- Параметры термоса ---
+    thermosBodyColor: '#C0C0C0',
+    thermosCapColor: '#1a1a1a',
+    thermosLogos: [],
+    selectedThermosLogoId: null,
 
     // --- AUTH И РОЛИ ---
     currentUser: null,
@@ -123,4 +129,39 @@ export const useConfigurator = create((set) => ({
         };
     }),
     setZoom: (val) => set({ zoomLevel: val }),
+
+    // --- ACTIONS: ТЕРМОС ---
+    addThermosLogo: (file) => {
+        if (file instanceof File) {
+            const reader = new FileReader();
+            const id = Date.now();
+            reader.onload = (e) => set((state) => ({
+                thermosLogos: [...state.thermosLogos, { id, texture: e.target.result, filename: file.name, position: [0, 0], rotation: 0, scale: 0.6 }],
+                selectedThermosLogoId: id
+            }));
+            reader.readAsDataURL(file);
+        }
+    },
+    selectThermosLogo: (id) => set({ selectedThermosLogoId: id }),
+    setThermosLogoPosition: (x, y) => set((state) => ({
+        thermosLogos: state.thermosLogos.map(l => l.id === state.selectedThermosLogoId ? { ...l, position: [x, y] } : l)
+    })),
+    setThermosLogoRotation: (rotation) => set((state) => ({
+        thermosLogos: state.thermosLogos.map(l => l.id === state.selectedThermosLogoId ? { ...l, rotation } : l)
+    })),
+    setThermosLogoScale: (scale) => set((state) => ({
+        thermosLogos: state.thermosLogos.map(l => l.id === state.selectedThermosLogoId ? { ...l, scale } : l)
+    })),
+    resetThermosLogoTransform: () => set((state) => ({
+        thermosLogos: state.thermosLogos.map(l => l.id === state.selectedThermosLogoId ? { ...l, position: [0, 0], rotation: 0, scale: 0.6 } : l)
+    })),
+    removeThermosLogo: (id) => set((state) => {
+        const remaining = state.thermosLogos.filter(l => l.id !== id);
+        return {
+            thermosLogos: remaining,
+            selectedThermosLogoId: state.selectedThermosLogoId === id
+                ? (remaining.length > 0 ? remaining[remaining.length - 1].id : null)
+                : state.selectedThermosLogoId
+        };
+    }),
 }))

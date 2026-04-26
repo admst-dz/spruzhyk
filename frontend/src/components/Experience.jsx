@@ -1,6 +1,7 @@
 import { PresentationControls, Stage, Environment } from '@react-three/drei'
 import { Notebook } from './Notebook'
 import { Calendar } from './Calendar'
+import { Thermos } from './Thermos'
 import { useConfigurator, registerWebGLCanvas } from '../store'
 import { useEffect, useRef, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
@@ -72,8 +73,8 @@ export const Experience = () => {
     // Мобилка требует зум поменьше (камера дальше), десктоп побольше.
     // Notebook побольше, Calendar поменьше.
     const baseZoom = isMobile
-        ? (activeProduct === 'calendar' ? 0.6 : 0.8)
-        : (activeProduct === 'calendar' ? 0.8 : 1.0);
+        ? (activeProduct === 'calendar' ? 0.6 : activeProduct === 'thermos' ? 0.65 : 0.8)
+        : (activeProduct === 'calendar' ? 0.8 : activeProduct === 'thermos' ? 0.85 : 1.0);
 
     // Итоговый зум = База * То, что накликали кнопками
     const finalZoom = baseZoom * zoomLevel;
@@ -109,6 +110,7 @@ export const Experience = () => {
                     {activeProduct === 'notebook' && <Notebook />}
                     {activeProduct === 'calendar' && <Calendar />}
                     {activeProduct === 'sketchbook' && <Sketchbook />}
+                    {activeProduct === 'thermos' && <Thermos />}
                 </Stage>
             </PresentationControls>
         </>

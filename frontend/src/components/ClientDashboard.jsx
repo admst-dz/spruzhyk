@@ -5,6 +5,7 @@ import { useConfigurator } from "../store";
 import { fetchUserOrders, fetchAllProducts, createOrderInDB } from '../api';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
+import { Thermos } from './Thermos';
 import { getUserDisplayName, getUserSecondaryLabel } from '../utils/user';
 
 const TabBtn = ({ active, children, onClick }) => (
@@ -108,6 +109,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
         currentUser, logout, cartItem, clearCart,
         activeProduct, coverColor, elasticColor, hasElastic,
         paperPattern, bindingType, spiralColor, format,
+        thermosBodyColor, thermosCapColor,
         renderSnapshot,
     } = useConfigurator();
     const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'orders');
@@ -314,6 +316,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                                     <Stage environment={null} intensity={0} contactShadow={false}>
                                                         {activeProduct === 'notebook' && <Notebook />}
                                                         {activeProduct === 'sketchbook' && <Sketchbook />}
+                                                        {activeProduct === 'thermos' && <Thermos />}
                                                     </Stage>
                                                 </PresentationControls>
                                             </Canvas>
@@ -323,12 +326,21 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                         {/* Параметры */}
                                         <div className="p-5 space-y-2 border-t border-white/5">
                                             <CartRow label="Продукт" value={cartItem.productName} />
-                                            <CartRow label="Формат" value={format} />
-                                            <CartRow label="Переплет" value={bindingType === 'hard' ? 'Твердый' : 'На пружине'} />
-                                            <CartRow label="Разлиновка" value={{ blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' }[paperPattern]} />
-                                            <CartRow label="Обложка" value={<ColorDot color={coverColor} />} />
-                                            {hasElastic && <CartRow label="Резинка" value={<ColorDot color={elasticColor} />} />}
-                                            {bindingType === 'spiral' && <CartRow label="Пружина" value={<ColorDot color={spiralColor} />} />}
+                                            {activeProduct === 'thermos' ? (
+                                                <>
+                                                    <CartRow label="Корпус" value={<ColorDot color={thermosBodyColor} />} />
+                                                    <CartRow label="Крышка" value={<ColorDot color={thermosCapColor} />} />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CartRow label="Формат" value={format} />
+                                                    <CartRow label="Переплет" value={bindingType === 'hard' ? 'Твердый' : 'На пружине'} />
+                                                    <CartRow label="Разлиновка" value={{ blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' }[paperPattern]} />
+                                                    <CartRow label="Обложка" value={<ColorDot color={coverColor} />} />
+                                                    {hasElastic && <CartRow label="Резинка" value={<ColorDot color={elasticColor} />} />}
+                                                    {bindingType === 'spiral' && <CartRow label="Пружина" value={<ColorDot color={spiralColor} />} />}
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 

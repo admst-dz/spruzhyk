@@ -1,7 +1,53 @@
-import React, { useEffect } from 'react';
+import { useEffect, Suspense, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF, Stage } from '@react-three/drei';
 import { useConfigurator } from '../store';
 import { t } from '../i18n';
 import { getUserDisplayName } from '../utils/user';
+import termosModelUrl from '../assets/termos3.glb?url';
+
+function ThermosPreviewScene() {
+    const groupRef = useRef();
+    const { nodes } = useGLTF(termosModelUrl);
+    const meshes = Object.entries(nodes).filter(([, n]) => n.geometry);
+
+    useFrame((_, delta) => {
+        if (groupRef.current) groupRef.current.rotation.y += delta * 0.6;
+    });
+
+    return (
+        <group ref={groupRef}>
+            {meshes.map(([name, node], i) => (
+                <mesh key={name} geometry={node.geometry} castShadow receiveShadow>
+                    <meshStandardMaterial
+                        color={i === meshes.length - 1 ? '#1a1a1a' : '#C0C0C0'}
+                        metalness={0.8}
+                        roughness={0.2}
+                    />
+                </mesh>
+            ))}
+        </group>
+    );
+}
+
+function ThermosPreview() {
+    return (
+        <Canvas
+            camera={{ position: [0, 0.5, 4], fov: 40 }}
+            gl={{ antialias: true }}
+            style={{ pointerEvents: 'none' }}
+        >
+            <ambientLight intensity={0.7} />
+            <directionalLight position={[5, 8, 5]} intensity={1.5} />
+            <directionalLight position={[-4, 3, 2]} intensity={0.6} />
+            <Suspense fallback={null}>
+                <Stage environment="city" intensity={0.3} contactShadow={false} adjustCamera>
+                    <ThermosPreviewScene />
+                </Stage>
+            </Suspense>
+        </Canvas>
+    );
+}
 
 export const Home = ({ onStart, onAuth, user, logout }) => {
     const {
@@ -78,10 +124,9 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                     {t(language, 'subtitle')}
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
 
                     {/* Карточка 1: Ежедневник */}
-                    {/* Явно указываем isSketchbook: false */}
                     <div onClick={() => handleSelect('notebook', { format: 'A5', bindingType: 'hard', hasElastic: true, isSketchbook: false })} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-[60px] group-hover:bg-blue-500/20 dark:group-hover:bg-blue-400/30 transition-colors duration-500"></div>
                         <div className="h-64 w-full flex items-center justify-center relative z-10">
@@ -100,48 +145,20 @@ export const Home = ({ onStart, onAuth, user, logout }) => {
                         </div>
                     </div>
 
-                    {/* Карточка 2: Календарь
-                    <div onClick={() => handleSelect('calendar')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-[60px] group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-400/30 transition-colors duration-500"></div>
-                        <div className="h-64 w-full flex items-center justify-center relative z-10">
-                            <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
-                                <rect x="20" y="20" width="60" height="90" rx="3" fill="#1E3A8A" stroke="#3b82f6" strokeWidth="1" strokeOpacity="0.3"/>
-                                <path d="M76 22 V108 L82 106 V24 Z" fill="#E5E7EB" />
-                                <rect x="20" y="20" width="8" height="90" fill="black" fillOpacity="0.4" />
-                            </svg>
+                    {/* Карточка 2: Термос */}
+                    <div onClick={() => handleSelect('thermos', {})} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-slate-500/10 dark:bg-slate-400/20 blur-[60px] group-hover:bg-slate-500/20 dark:group-hover:bg-slate-400/30 transition-colors duration-500"></div>
+                        <div className="h-64 w-full relative z-10">
+                            <ThermosPreview />
                         </div>
                         <div className="text-center relative z-10 mt-2">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'calendar')}</h3>
-                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'calendarDesc')}</p>
-                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'thermos')}</h3>
+                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'thermosDesc')}</p>
+                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-slate-50 group-hover:text-slate-700 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
                                 {t(language, 'openBtn')}
                             </button>
                         </div>
-                    </div> */}
-
-                    {/* Карточка 3: Блокнот */}
-                    {/* ВАЖНО: Указываем bindingType: 'spiral' и isSketchbook: true */}
-                    {/* <div onClick={() => handleSelect('sketchbook')} className="group relative flex flex-col items-center p-6 rounded-[24px] bg-white border border-gray-200 shadow-xl hover:shadow-2xl dark:bg-white/[0.03] dark:border-white/10 dark:backdrop-blur-xl dark:shadow-none cursor-pointer dark:hover:bg-white/[0.06] dark:hover:border-white/20 transition-all duration-500 overflow-hidden">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-teal-500/10 dark:bg-teal-500/20 blur-[60px] group-hover:bg-teal-500/20 dark:group-hover:bg-teal-400/30 transition-colors duration-500"></div>
-                        <div className="h-64 w-full flex items-center justify-center relative z-10">
-                            <svg width="140" height="180" viewBox="0 0 100 130" fill="none" className="drop-shadow-xl dark:drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
-                                <rect x="25" y="15" width="55" height="95" rx="6" fill="#2E3C45" stroke="#4B606B" strokeWidth="1" />
-                                <path d="M78 18 V107 L82 105 V20 Z" fill="#D1D5DB" />
-                                <g fill="#9CA3AF" className="drop-shadow-sm">
-                                    {[15, 25, 35, 45, 55, 65, 75, 85, 95, 105].map((y) => (
-                                        <rect key={y} x="20" y={y} width="10" height="3" rx="1.5" />
-                                    ))}
-                                </g>
-                            </svg>
-                        </div>
-                        <div className="text-center relative z-10 mt-2">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">{t(language, 'sketchbook')}</h3>
-                            <p className="text-xs text-gray-500 font-medium mb-6 transition-colors">{t(language, 'sketchbookDesc')}</p>
-                            <button className="px-5 py-2 rounded-full bg-gray-100 text-gray-600 border border-gray-200 group-hover:bg-teal-50 group-hover:text-teal-600 dark:bg-white/10 dark:text-gray-300 dark:group-hover:bg-white/20 dark:group-hover:text-white transition-colors dark:border-white/5 text-xs font-bold">
-                                {t(language, 'openBtn')}
-                            </button>
-                        </div>
-                    </div> */}
+                    </div>
 
                 </div>
             </main>

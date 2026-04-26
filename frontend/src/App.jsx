@@ -11,6 +11,7 @@ import { useConfigurator } from './store'
 import { restoreSession } from './api'
 import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
+import { ThermosInterface } from './components/ThermosInterface'
 import { CookieBanner } from './components/CookieBanner'
 
 function App() {
@@ -253,18 +254,30 @@ function App() {
                             </div>
 
                             <div className="relative h-[55%] w-full z-10 md:absolute md:top-0 md:right-0 md:h-full md:w-[30%] pointer-events-none md:p-4 md:flex md:flex-col md:justify-center">
-                                <Interface
-                                    onFinish={() => {
-                                        if (currentUser) {
-                                            setScreen('client_dashboard');
-                                        } else {
-                                            setShowAuth(true);
-                                        }
-                                    }}
-                                    onAuth={() => setShowAuth(true)}
-                                    user={currentUser}
-                                    logout={logout}
-                                />
+                                {activeProduct === 'thermos' ? (
+                                    <ThermosInterface
+                                        onFinish={() => {
+                                            if (currentUser) {
+                                                setScreen('client_dashboard');
+                                            } else {
+                                                setShowAuth(true);
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <Interface
+                                        onFinish={() => {
+                                            if (currentUser) {
+                                                setScreen('client_dashboard');
+                                            } else {
+                                                setShowAuth(true);
+                                            }
+                                        }}
+                                        onAuth={() => setShowAuth(true)}
+                                        user={currentUser}
+                                        logout={logout}
+                                    />
+                                )}
                             </div>
                         </>
                     )}
