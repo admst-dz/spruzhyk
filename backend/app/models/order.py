@@ -20,6 +20,7 @@ class Order(Base):
     currency = Column(String, default='BYN')
     is_guest = Column(Boolean, default=False)
     stage_history = Column(JSONB, default=list, nullable=True)
+    processing_payload = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
