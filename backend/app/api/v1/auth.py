@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,9 +41,20 @@ def _build_display_name(payload: dict) -> str:
     return "Telegram User"
 
 
+async def _validate_dealer_id(db: AsyncSession, dealer_id: Optional[str]) -> Optional[str]:
+    if not dealer_id:
+        return None
+
+    dealer = await crud_user.get_user(db, dealer_id)
+    if not dealer or dealer.role != "dealer":
+        raise HTTPException(status_code=400, detail="Dealer not found")
+    return dealer_id
+
+
 @router.post("/register", response_model=TokenResponse)
 @limiter.limit("5/minute")  # Защита от спам-регистраций
 async def register(request: Request, data: UserRegister, db: AsyncSession = Depends(get_db)):
+    dealer_id = await _validate_dealer_id(db, data.dealer_id)
     existing = await crud_user.get_user_by_email(db, data.email)
     if existing:
         if existing.password_hash:
@@ -56,6 +68,8 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         if data.sub_role and existing.sub_role is None:
             if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"]:
                 existing.sub_role = data.sub_role
+        if dealer_id and existing.dealer_id is None:
+            existing.dealer_id = dealer_id
 
         db.add(existing)
         await db.commit()
@@ -70,6 +84,7 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         display_name=data.display_name or "",
         role="client",  # БЕЗОПАСНОСТЬ: ЖЕСТКО СТАВИМ КЛИЕНТА
         sub_role=data.sub_role if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"] else None,
+        dealer_id=dealer_id,
         token_balance=0.0,
     )
     db.add(user)

@@ -32,6 +32,7 @@ class OrderResponse(BaseModel):
     is_guest: Optional[bool] = None
     status: str
     stage_history: Optional[List[Dict[str, Any]]] = None
+    processing_payload: Optional[Dict[str, Any]] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

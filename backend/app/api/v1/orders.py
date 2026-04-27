@@ -9,31 +9,35 @@ import os
 from app.database import get_db
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
 from app.services.order_service import OrderService
+from app.services.storage import s3_storage
 from app.crud import order as crud_order
+from app.crud import user as crud_user
 from app.core.deps import get_current_user
 
 from app.core.kafka import kafka_producer
 
 router = APIRouter()
 
-os.makedirs("uploads/renders", exist_ok=True)
+RENDERER_URL = os.getenv("RENDERER_URL", "http://renderer:3000/render")
 
 
-async def generate_backend_render(config: dict) -> str:
+async def generate_backend_render(config: dict) -> Optional[str]:
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post("http://renderer:3000/render", json={"config": config}, timeout=20.0)
+            res = await client.post(RENDERER_URL, json={"config": config}, timeout=20.0)
             res.raise_for_status()
-
-            filename = f"render_{uuid.uuid4().hex}.png"
-            filepath = f"uploads/renders/{filename}"
-            with open(filepath, "wb") as f:
-                f.write(res.content)
-
-            return f"/uploads/renders/{filename}"
-    except Exception as e:
+    except httpx.HTTPError as e:
         print(f"Error generating render: {e}")
         return None
+
+    filename = f"render_{uuid.uuid4().hex}.png"
+    uploaded = await s3_storage.upload_bytes(
+        content=res.content,
+        folder="renders",
+        filename=filename,
+        content_type=res.headers.get("content-type") or "image/png",
+    )
+    return uploaded["url"]
 
 
 @router.post("/", response_model=OrderResponse)
@@ -42,13 +46,11 @@ async def create_order(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
-    config_for_3d = order.configuration.get("productConfig", {})
+    configuration = order.configuration or {}
+    config_for_3d = configuration.get("productConfig", {})
     render_url = await generate_backend_render(config_for_3d)
 
-    if render_url:
-        order.configuration["server_render_url"] = render_url
-
-    new_order = await OrderService.create_new_order(db, order, current_user.id)
+    new_order = await OrderService.create_new_order(db, order, current_user.id, render_url=render_url)
 
     # 3. ОТПРАВЛЯЕМ СОБЫТИЕ В KAFKA
     # Это позволяет другим микросервисам (например, сервису отправки email
@@ -76,7 +78,9 @@ async def get_all_orders(
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
-    orders = await crud_order.get_all(db)
+
+    effective_dealer_id = current_user.id if current_user.role == "dealer" else dealer_id
+    orders = await crud_order.get_all(db, dealer_id=effective_dealer_id)
     return paginate(orders)
 
 
@@ -86,7 +90,16 @@ async def get_user_orders(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
-    if current_user.id != user_id and current_user.role not in ["admin", "dealer", "owner"]:
+    if current_user.id == user_id:
+        return await crud_order.get_orders_by_user(db, user_id)
+
+    if current_user.role == "dealer":
+        user = await crud_user.get_user(db, user_id)
+        if not user or user.dealer_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return await crud_order.get_orders_by_user(db, user_id)
+
+    if current_user.role not in ["admin", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
     return await crud_order.get_orders_by_user(db, user_id)
 
@@ -100,6 +113,11 @@ async def update_order_status(
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    if current_user.role == "dealer":
+        allowed = await crud_order.order_belongs_to_dealer(db, order_id, current_user.id)
+        if not allowed:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     order = await crud_order.update_status(db, order_id, status_data.status, status_data.comment)
     if not order:
