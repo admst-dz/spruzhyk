@@ -29,7 +29,7 @@ export const SketchbookInterface = ({ onFinish }) => {
         const newItem = {
             productName: `Блокнот (Скетчбук) ${format}`,
             design: `Пружина: ${spiralColor}, Блок: ${paperPattern}`,
-            priceTK: 25, priceBYN: 1000,
+            priceBYN: 1000,
             config: { format, coverColor, paperPattern, spiralColor },
             status: 'draft', rendersGenerated: 0
         };

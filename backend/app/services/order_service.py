@@ -48,12 +48,6 @@ class OrderService:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if user.sub_role == "PL" and order_data.total_price:
-            if (user.token_balance or 0) < order_data.total_price:
-                raise HTTPException(status_code=400, detail="Not enough tokens (TK)")
-            user.token_balance -= order_data.total_price
-            db.add(user)
-
         processing_payload = OrderService._build_order_json(order_data, user, render_url)
         order_for_db = OrderCreate(**processing_payload["order"])
 

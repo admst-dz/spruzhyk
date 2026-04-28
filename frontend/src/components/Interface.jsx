@@ -46,7 +46,6 @@ export const Interface = ({ onFinish }) => {
         const newItem = {
             productName: `Ежедневник ${format}`,
             design: `Переплет: ${bindingType === 'hard' ? 'Твердый' : 'Пружина'}, Блок: ${paperPattern}`,
-            priceTK: 35,
             priceBYN: 1500,
             config: { format, coverColor, hasElastic, elasticColor, paperPattern, bindingType, spiralColor },
             status: 'draft',
