@@ -122,9 +122,15 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
     const [productsLoading, setProductsLoading] = useState(false);
 
     const [clientType, setClientType] = useState('phys');
-    const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '', inn: '', contactPerson: '', comment: '' });
+    const [formData, setFormData] = useState({ name: '', phone: '', address: '', inn: '', contactPerson: '', comment: '' });
     const [formError, setFormError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (currentUser?.display_name) {
+            setFormData(prev => ({ ...prev, name: currentUser.display_name }));
+        }
+    }, [currentUser]);
 
     useEffect(() => {
         if (showSuccessToast) {
@@ -178,7 +184,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
         try {
             const id = await createOrderInDB({
                 user_id: currentUser?.id || null,
-                user_email: currentUser?.email || formData.email || '',
+                user_email: currentUser?.email || '',
                 product_name: cartItem.productName,
                 configuration: {
                     productConfig: cartItem,
@@ -373,8 +379,9 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                             {clientType === 'phys' ? (<>
                                                 <CartInput name="name" label="ФИО *" placeholder="Иванов Иван" value={formData.name} onChange={handleInputChange} />
                                                 <CartInput name="phone" label="Телефон *" placeholder="+375..." type="tel" value={formData.phone} onChange={handleInputChange} />
-                                                <CartInput name="email" label="Email" placeholder="mail@..." type="email" value={formData.email} onChange={handleInputChange} />
-                                                <CartInput name="address" label="Адрес доставки" placeholder="Город, улица..." value={formData.address} onChange={handleInputChange} />
+                                                <div className="md:col-span-2">
+                                                    <CartInput name="address" label="Адрес доставки" placeholder="Город, улица..." value={formData.address} onChange={handleInputChange} />
+                                                </div>
                                             </>) : (<>
                                                 <CartInput name="name" label="Название компании *" placeholder='ООО "Пример"' value={formData.name} onChange={handleInputChange} />
                                                 <CartInput name="inn" label="УНП / ИНН" placeholder="123456789" value={formData.inn} onChange={handleInputChange} />
