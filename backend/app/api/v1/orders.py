@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_pagination import Page, paginate
@@ -6,7 +6,7 @@ import httpx
 import uuid
 import os
 
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
 from app.services.order_service import OrderService
 from app.services.storage import s3_storage
@@ -24,7 +24,7 @@ RENDERER_URL = os.getenv("RENDERER_URL", "http://renderer:3000/render")
 async def generate_backend_render(config: dict) -> Optional[str]:
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post(RENDERER_URL, json={"config": config}, timeout=20.0)
+            res = await client.post(RENDERER_URL, json={"config": config}, timeout=25.0)
             res.raise_for_status()
     except httpx.HTTPError as e:
         print(f"Error generating render: {e}")
@@ -40,21 +40,23 @@ async def generate_backend_render(config: dict) -> Optional[str]:
     return uploaded["url"]
 
 
+async def _render_and_save(order_id: str, config: dict):
+    render_url = await generate_backend_render(config)
+    if render_url:
+        async with AsyncSessionLocal() as db:
+            await crud_order.update_render_url(db, order_id, render_url)
+        print(f"Render saved for order {order_id}: {render_url}")
+
+
 @router.post("/", response_model=OrderResponse)
 async def create_order(
         order: OrderCreate,
+        background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
-    configuration = order.configuration or {}
-    config_for_3d = configuration.get("productConfig", {})
-    render_url = await generate_backend_render(config_for_3d)
+    new_order = await OrderService.create_new_order(db, order, current_user.id, render_url=None)
 
-    new_order = await OrderService.create_new_order(db, order, current_user.id, render_url=render_url)
-
-    # 3. ОТПРАВЛЯЕМ СОБЫТИЕ В KAFKA
-    # Это позволяет другим микросервисам (например, сервису отправки email
-    # или интеграции с Битрикс24) узнать, что заказ создан, и начать работу в фоне.
     await kafka_producer.send_message(
         topic="order_events",
         message={
@@ -62,10 +64,14 @@ async def create_order(
             "order_id": str(new_order.id),
             "user_id": current_user.id,
             "user_email": current_user.email,
-            "render_url": render_url,
+            "render_url": None,
             "status": new_order.status
         }
     )
+
+    configuration = order.configuration or {}
+    config_for_3d = configuration.get("productConfig", {})
+    background_tasks.add_task(_render_and_save, str(new_order.id), config_for_3d)
 
     return new_order
 

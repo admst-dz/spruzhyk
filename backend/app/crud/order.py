@@ -53,6 +53,17 @@ async def order_belongs_to_dealer(db: AsyncSession, order_id: str, dealer_id: st
     return result.scalar_one_or_none() is not None
 
 
+async def update_render_url(db: AsyncSession, order_id: str, render_url: str):
+    order = await get_order(db, order_id)
+    if order and order.processing_payload:
+        payload = dict(order.processing_payload)
+        payload["media"] = {**(payload.get("media") or {}), "render_url": render_url}
+        order.processing_payload = payload
+        flag_modified(order, "processing_payload")
+        await db.commit()
+    return order
+
+
 async def update_status(db: AsyncSession, order_id: str, status: str, comment: Optional[str] = None):
     order = await get_order(db, order_id)
     if order:
