@@ -478,13 +478,6 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                 )}
             </main>
 
-            {/* FOOTER */}
-            <footer className="text-center pb-6 z-10">
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-700">
-                    By Spoogeek • Liquid Glass Edition
-                </span>
-            </footer>
-
             {/* SUCCESS TOAST */}
             {orderSuccess && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
