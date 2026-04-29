@@ -7,14 +7,16 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("CRITICAL ERROR: DATABASE_URL is not set in environment variables or .env file!")
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    # БЕЗОПАСНОСТЬ: Настройка пула соединений
-    pool_size=10,        # Держим 10 постоянных подключений
-    max_overflow=20,     # Разрешаем создать еще 20 при пиковой нагрузке
-    pool_recycle=1800,   # Перезапускаем соединения каждые 30 минут
-    pool_pre_ping=True   # Проверяем "живость" соединения перед использованием
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=1800,
+    pool_pre_ping=True
 )
 
 AsyncSessionLocal = sessionmaker(
