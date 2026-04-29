@@ -8,7 +8,16 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("CRITICAL ERROR: DATABASE_URL is not set in environment variables or .env file!")
+    db_user = os.getenv("DB_USER", "postgres")
+    db_password = os.getenv("DB_PASSWORD", "rootpassword")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "spruzhuk")
+
+    DATABASE_URL = f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+if not DATABASE_URL or "None" in DATABASE_URL:
+    raise ValueError("CRITICAL ERROR: Failed to construct DATABASE_URL. Check your environment variables.")
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -26,6 +35,7 @@ AsyncSessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
 
 async def get_db():
     async with AsyncSessionLocal() as session:
