@@ -66,7 +66,7 @@ services:
       start_period: 10s
 
   kafka:
-    image: public.ecr.aws/bitnami/kafka:latest
+    image: public.ecr.aws/bitnami/kafka:3.7
     container_name: spruzhuk_kafka
     hostname: kafka
     restart: unless-stopped
