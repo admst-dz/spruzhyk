@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     image: public.ecr.aws/docker/library/postgres:15-alpine
@@ -14,6 +16,83 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - spruzhuk_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  zookeeper:
+    image: public.ecr.aws/bitnami/zookeeper:3.9
+    container_name: spruzhuk_zookeeper
+    restart: unless-stopped
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_HEAP_SIZE=256
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+    networks:
+      - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "zkServer.sh", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  kafka:
+    image: public.ecr.aws/bitnami/kafka:3.6
+    container_name: spruzhuk_kafka
+    hostname: kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_DELETE_TOPIC_ENABLE=true
+      - KAFKA_CFG_LOG_RETENTION_HOURS=168
+      - KAFKA_CFG_LOG_RETENTION_BYTES=1073741824
+      - KAFKA_CFG_LOG_SEGMENT_BYTES=107374182
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - spruzhuk_net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   backend:
     image: ghcr.io/admst-dz/spruzhyk-backend:latest
@@ -28,10 +107,29 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
       SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
-      - db
-      - kafka
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     image: ghcr.io/admst-dz/spruzhyk-frontend:latest
@@ -41,7 +139,8 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - spruzhuk_net
     healthcheck:
@@ -50,6 +149,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   frontend-render:
     image: ghcr.io/admst-dz/spruzhyk-frontend:latest
@@ -64,27 +169,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  kafka:
-    image: public.ecr.aws/bitnami/kafka:3.7
-    container_name: spruzhuk_kafka
-    hostname: kafka
-    restart: unless-stopped
-    environment:
-      - KAFKA_CFG_NODE_ID=0
-      - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_QUORUM_BOOTSTRAP_SERVERS=kafka:9093
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-      - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      - ALLOW_PLAINTEXT_LISTENER=yes
-    volumes:
-      - kafka_data:/bitnami/kafka
-    networks:
-      - spruzhuk_net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   renderer:
     image: ghcr.io/admst-dz/spruzhyk-renderer:latest
@@ -108,11 +198,55 @@ services:
         condition: service_healthy
     networks:
       - spruzhuk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: spruzhuk_watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=3600
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+    command: --label-enable --cleanup --interval 3600
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
 
 networks:
   spruzhuk_net:
     driver: bridge
+    name: spruzhyk_spruzhuk_net
 
 volumes:
   postgres_data:
+    name: spruzhyk_postgres_data
+    driver: local
+  zookeeper_data:
+    name: spruzhyk_zookeeper_data
+    driver: local
   kafka_data:
+    name: spruzhyk_kafka_data
+    driver: local
