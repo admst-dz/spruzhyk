@@ -30,6 +30,7 @@ class OrderResponse(BaseModel):
     total_price: Optional[float] = None
     currency: Optional[str] = None
     is_guest: Optional[bool] = None
+    dealer_id: Optional[str] = None
     status: str
     stage_history: Optional[List[Dict[str, Any]]] = None
     processing_payload: Optional[Dict[str, Any]] = None

@@ -51,4 +51,6 @@ class OrderService:
         processing_payload = OrderService._build_order_json(order_data, user, render_url)
         order_for_db = OrderCreate(**processing_payload["order"])
 
-        return await crud_order.create_order(db, order_for_db, processing_payload=processing_payload)
+        return await crud_order.create_order(
+            db, order_for_db, processing_payload=processing_payload, dealer_id=user.dealer_id
+        )

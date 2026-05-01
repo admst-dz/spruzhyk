@@ -85,8 +85,7 @@ async def get_all_orders(
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    effective_dealer_id = current_user.id if current_user.role == "dealer" else dealer_id
-    orders = await crud_order.get_all(db, dealer_id=effective_dealer_id)
+    orders = await crud_order.get_all(db, dealer_id=dealer_id)
     return paginate(orders)
 
 
@@ -119,11 +118,6 @@ async def update_order_status(
 ):
     if current_user.role not in ["admin", "dealer", "owner"]:
         raise HTTPException(status_code=403, detail="Access denied")
-
-    if current_user.role == "dealer":
-        allowed = await crud_order.order_belongs_to_dealer(db, order_id, current_user.id)
-        if not allowed:
-            raise HTTPException(status_code=403, detail="Access denied")
 
     order = await crud_order.update_status(db, order_id, status_data.status, status_data.comment)
     if not order:

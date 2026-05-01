@@ -62,6 +62,9 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         if data.display_name:
             existing.display_name = data.display_name
 
+        if data.role == "dealer":
+            existing.role = "dealer"
+
         # БЕЗОПАСНОСТЬ: Разрешаем задать sub_role только если он пустой
         if data.sub_role and existing.sub_role is None:
             if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"]:
@@ -80,7 +83,7 @@ async def register(request: Request, data: UserRegister, db: AsyncSession = Depe
         email=data.email,
         password_hash=hash_password(data.password),
         display_name=data.display_name or "",
-        role="client",  # БЕЗОПАСНОСТЬ: ЖЕСТКО СТАВИМ КЛИЕНТА
+        role=data.role,
         sub_role=data.sub_role if data.sub_role in ["PL", "PKL", "KL", "KPR", "PR"] else None,
         dealer_id=dealer_id,
         token_balance=0.0,
@@ -129,7 +132,7 @@ async def google_auth(request: Request, body: GoogleAuthRequest, db: AsyncSessio
         await db.commit()
         await db.refresh(user)
 
-    needs_role_setup = user.sub_role is None
+    needs_role_setup = user.sub_role is None and user.role != "dealer"
     token = create_access_token(user.id, user.email, user.role)
     return {"access_token": token, "user": user, "needs_role_setup": needs_role_setup}
 
@@ -145,13 +148,22 @@ async def update_role(
         db: AsyncSession = Depends(get_db),
         current_user=Depends(get_current_user),
 ):
+    role = body.get("role")
     sub_role = body.get("sub_role")
 
-    if current_user.sub_role is None and sub_role:
+    changed = False
+
+    if role == "dealer" and current_user.role != "dealer":
+        current_user.role = "dealer"
+        changed = True
+
+    if sub_role and current_user.sub_role is None:
         if sub_role not in ["PL", "PKL", "KL", "KPR", "PR"]:
             raise HTTPException(status_code=400, detail="Недопустимая под-роль")
-
         current_user.sub_role = sub_role
+        changed = True
+
+    if changed:
         db.add(current_user)
         await db.commit()
         await db.refresh(current_user)

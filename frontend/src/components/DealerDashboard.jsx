@@ -384,18 +384,20 @@ export const DealerDashboard = ({ onBack }) => {
     useEffect(() => {
         if (activeTab === 'orders') {
             setLoading(true);
-            fetchAllOrders(currentUser?.id).then(data => {
-                data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
-                setOrders(data);
-                setLoading(false);
-            });
+            fetchAllOrders()
+                .then(data => {
+                    data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+                    setOrders(data);
+                })
+                .catch(err => console.error('Failed to load orders:', err))
+                .finally(() => setLoading(false));
         }
         if (activeTab === 'products' && currentUser) {
             setLoading(true);
-            fetchDealerProducts(currentUser.id).then(data => {
-                setProducts(data);
-                setLoading(false);
-            });
+            fetchDealerProducts(currentUser.id)
+                .then(data => setProducts(data))
+                .catch(err => console.error('Failed to load products:', err))
+                .finally(() => setLoading(false));
         }
     }, [activeTab, currentUser]);
 
