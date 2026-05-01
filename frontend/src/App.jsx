@@ -77,8 +77,8 @@ function App() {
     useEffect(() => {
         if (userRole === 'dealer') {
             setScreen('dealer');
-        } else if (userRole === 'client') {
-            setScreen('client_dashboard'); // <--- ВАЖНО: Роут для клиента
+        } else if (userRole === 'client' && screen !== 'configurator' && screen !== 'sketchbook_configurator') {
+            setScreen('client_dashboard');
         } else if (!userRole && (screen === 'dealer' || screen === 'client_dashboard')) {
             setScreen('home');
         }

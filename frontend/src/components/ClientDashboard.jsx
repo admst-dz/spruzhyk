@@ -122,6 +122,8 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
     const [productsLoading, setProductsLoading] = useState(false);
 
     const [clientType, setClientType] = useState('phys');
+    const [quantity, setQuantity] = useState(cartItem?.quantity || 1);
+    const [isSample, setIsSample] = useState(cartItem?.isSample || false);
     const [formData, setFormData] = useState({ name: '', phone: '', address: '', inn: '', contactPerson: '', comment: '' });
     const [formError, setFormError] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -131,6 +133,13 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
             setFormData(prev => ({ ...prev, name: currentUser.display_name }));
         }
     }, [currentUser]);
+
+    useEffect(() => {
+        if (cartItem) {
+            if (cartItem.quantity) setQuantity(cartItem.quantity);
+            if (cartItem.isSample !== undefined) setIsSample(cartItem.isSample);
+        }
+    }, [cartItem]);
 
     useEffect(() => {
         if (showSuccessToast) {
@@ -190,9 +199,10 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                     productConfig: cartItem,
                     clientType,
                     contact: { ...formData },
+                    isSample,
                     renderSnapshot: renderSnapshot || null,
                 },
-                quantity: 1,
+                quantity,
                 total_price: cartItem.priceBYN || null,
                 currency: 'BYN',
                 is_guest: false,
@@ -391,6 +401,30 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                             <div className="md:col-span-2">
                                                 <CartInput name="comment" label="Комментарий" placeholder="Доп. пожелания..." value={formData.comment} onChange={handleInputChange} isTextarea />
                                             </div>
+                                        </div>
+
+                                        {/* Тираж и тиражный образец */}
+                                        <div className="flex flex-col sm:flex-row gap-4 sm:items-end pt-2 border-t border-white/8">
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className="text-[10px] font-bold uppercase text-gray-500 tracking-widest">Тираж (шт.)</span>
+                                                <div className="flex items-center gap-2 bg-white/5 rounded-[12px] p-1.5 border border-white/10 w-max">
+                                                    <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-[9px] text-white font-bold text-lg hover:bg-white/20 active:scale-95 transition">−</button>
+                                                    <span className="w-12 text-center font-black text-white text-xl select-none">{quantity}</span>
+                                                    <button onClick={() => setQuantity(q => q + 1)} className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-[9px] text-white font-bold text-lg hover:bg-white/20 active:scale-95 transition">+</button>
+                                                </div>
+                                            </div>
+
+                                            {clientType === 'jur' && (
+                                                <label className="flex items-center gap-3 cursor-pointer select-none bg-blue-500/8 border border-blue-500/20 hover:border-blue-500/40 px-4 py-3 rounded-[12px] transition-all" onClick={() => setIsSample(s => !s)}>
+                                                    <div className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all shrink-0 ${isSample ? 'bg-white border-white' : 'bg-white/5 border-white/20'}`}>
+                                                        {isSample && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#0B0F19" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-blue-300 uppercase tracking-wide">Тиражный образец</span>
+                                                        <span className="text-[10px] text-blue-500">Изготовление 1 шт. перед партией</span>
+                                                    </div>
+                                                </label>
+                                            )}
                                         </div>
 
                                         {formError && (
