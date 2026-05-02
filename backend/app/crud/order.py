@@ -65,6 +65,21 @@ async def update_render_url(db: AsyncSession, order_id: str, render_url: str):
     return order
 
 
+async def update_price(db: AsyncSession, order_id: str, dealer_price: float, dealer_comment: Optional[str] = None):
+    order = await get_order(db, order_id)
+    if order:
+        order.total_price = dealer_price
+        if dealer_comment:
+            conf = dict(order.configuration or {})
+            conf["dealer_price_comment"] = dealer_comment
+            order.configuration = conf
+            flag_modified(order, "configuration")
+        order.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(order)
+    return order
+
+
 async def update_status(db: AsyncSession, order_id: str, status: str, comment: Optional[str] = None):
     order = await get_order(db, order_id)
     if order:

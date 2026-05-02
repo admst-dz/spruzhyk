@@ -7,7 +7,7 @@ import uuid
 import os
 
 from app.database import get_db, AsyncSessionLocal
-from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
+from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate, OrderPriceUpdate
 from app.services.order_service import OrderService
 from app.services.storage import s3_storage
 from app.crud import order as crud_order
@@ -133,4 +133,20 @@ async def update_order_status(
         }
     )
 
+    return order
+
+
+@router.patch("/{order_id}/price", response_model=OrderResponse)
+async def update_order_price(
+        order_id: str,
+        price_data: OrderPriceUpdate,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "dealer", "owner"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    order = await crud_order.update_price(db, order_id, price_data.dealer_price, price_data.dealer_comment)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
     return order

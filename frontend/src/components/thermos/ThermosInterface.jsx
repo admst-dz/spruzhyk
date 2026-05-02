@@ -34,6 +34,7 @@ export const ThermosInterface = ({ onFinish }) => {
             productName: 'Термос',
             design: `Корпус: ${thermosBodyColor}, Крышка: ${thermosCapColor}`,
             priceBYN: 2000,
+            type: 'thermos',
             activeProduct: 'thermos',
             thermosBodyColor,
             thermosCapColor,

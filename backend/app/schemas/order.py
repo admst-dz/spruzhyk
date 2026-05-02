@@ -20,6 +20,11 @@ class OrderStatusUpdate(BaseModel):
     comment: Optional[str] = None
 
 
+class OrderPriceUpdate(BaseModel):
+    dealer_price: float
+    dealer_comment: Optional[str] = None
+
+
 class OrderResponse(BaseModel):
     id: UUID
     user_id: Optional[str] = None

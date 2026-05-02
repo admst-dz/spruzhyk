@@ -203,7 +203,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                     renderSnapshot: renderSnapshot || null,
                 },
                 quantity,
-                total_price: cartItem.priceBYN || null,
+                total_price: null,
                 currency: 'BYN',
                 is_guest: false,
             });
@@ -212,7 +212,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                 id,
                 product: cartItem.productName,
                 design: cartItem.design || '',
-                price: cartItem.priceBYN || 0,
+                price: 0,
                 status: 'new',
                 stageHistory: [{
                     status: 'new',
@@ -220,6 +220,13 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                     updated_at: new Date().toISOString(),
                 }],
                 date: new Date().toLocaleDateString('ru-RU'),
+                quantity,
+                configuration: {
+                    productConfig: cartItem,
+                    clientType,
+                    contact: { ...formData },
+                    isSample,
+                },
             };
             setOrders(prev => [newOrder, ...prev]);
             setOrderSuccess(true);
@@ -475,6 +482,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                             key={order.id}
                                             className={`transition-colors ${i !== orders.length - 1 ? 'border-b border-white/5' : ''}`}
                                         >
+                                            {/* Summary row */}
                                             <div
                                                 className="px-4 md:px-6 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:bg-white/[0.03] cursor-pointer"
                                                 onClick={toggleExpand}
@@ -485,10 +493,14 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-sm text-white truncate">{order.product}</p>
-                                                    <p className="text-xs text-gray-500 truncate">{order.design}</p>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        {order.quantity ? `${order.quantity} шт.` : ''}
+                                                        {order.quantity && order.configuration?.productConfig?.format ? ' · ' : ''}
+                                                        {order.configuration?.productConfig?.format || ''}
+                                                    </p>
                                                 </div>
                                                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                                                    <span className="font-bold text-white text-sm">{order.price} BYN</span>
+                                                    <span className="font-bold text-white text-sm">{order.price ? `${order.price} BYN` : ''}</span>
                                                     <OrderStatus status={order.status} />
                                                     <svg
                                                         width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -498,9 +510,61 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
                                                     </svg>
                                                 </div>
                                             </div>
+
+                                            {/* Expanded detail */}
                                             {isExpanded && (
-                                                <div className="px-4 md:px-6 pb-5 border-t border-white/5 bg-white/[0.02]">
-                                                    <OrderProgressBar status={order.status} stageHistory={order.stageHistory} />
+                                                <div className="border-t border-white/5 bg-white/[0.02] px-4 md:px-6 pb-6 pt-5">
+                                                    <div className="flex flex-col lg:flex-row gap-6">
+
+                                                        {/* 3D preview */}
+                                                        <div className="w-full lg:w-64 shrink-0">
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">3D Макет</p>
+                                                            <ClientOrder3DPreview configuration={order.configuration} productName={order.product} />
+                                                        </div>
+
+                                                        {/* Details */}
+                                                        <div className="flex-1 flex flex-col gap-5">
+                                                            {/* Order params */}
+                                                            <div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Параметры заказа</p>
+                                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                                    {order.quantity && (
+                                                                        <ClientDetailRow label="Тираж" value={`${order.quantity} шт.`} accent />
+                                                                    )}
+                                                                    {order.configuration?.isSample && (
+                                                                        <ClientDetailRow label="Образец" value="Тиражный образец" />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.format && (
+                                                                        <ClientDetailRow label="Формат" value={order.configuration.productConfig.format} />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.bindingType && (
+                                                                        <ClientDetailRow label="Переплёт" value={order.configuration.productConfig.bindingType === 'hard' ? 'Твёрдый' : 'На пружине'} />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.paperPattern && (
+                                                                        <ClientDetailRow label="Разлиновка" value={{ blank: 'Пустой', lined: 'Линейка', grid: 'Клетка', dotted: 'Точка' }[order.configuration.productConfig.paperPattern] || ''} />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.coverColor && (
+                                                                        <ClientDetailRow label="Обложка" value={<ClientColorDot color={order.configuration.productConfig.coverColor} />} />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.hasElastic && order.configuration?.productConfig?.elasticColor && (
+                                                                        <ClientDetailRow label="Резинка" value={<ClientColorDot color={order.configuration.productConfig.elasticColor} />} />
+                                                                    )}
+                                                                    {order.configuration?.productConfig?.bindingType === 'spiral' && order.configuration?.productConfig?.spiralColor && (
+                                                                        <ClientDetailRow label="Пружина" value={<ClientColorDot color={order.configuration.productConfig.spiralColor} />} />
+                                                                    )}
+                                                                    {order.price > 0 && (
+                                                                        <ClientDetailRow label="Стоимость" value={`${order.price} BYN`} />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Progress */}
+                                                            <div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Статус выполнения</p>
+                                                                <OrderProgressBar status={order.status} stageHistory={order.stageHistory} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -556,5 +620,60 @@ const CartInput = ({ label, name, placeholder, type = 'text', value, onChange, i
                 className="w-full p-3 bg-white/5 border border-white/10 rounded-[12px] text-white font-bold placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 text-sm transition-colors"
             />
         )}
+    </div>
+);
+
+const ClientOrder3DPreview = ({ configuration, productName }) => {
+    const pc = configuration?.productConfig;
+    const name = (productName || pc?.productName || '').toLowerCase();
+    const productType = pc?.type || pc?.activeProduct ||
+        (name.includes('термос') ? 'thermos' : name.includes('скетчбук') ? 'sketchbook' : 'notebook');
+
+    const config3D = {
+        format: pc?.format || pc?.config?.format || 'A5',
+        bindingType: pc?.bindingType || pc?.config?.bindingType || 'hard',
+        coverColor: pc?.coverColor || pc?.config?.coverColor || '#D2B48C',
+        hasElastic: pc?.hasElastic ?? pc?.config?.hasElastic ?? false,
+        elasticColor: pc?.elasticColor || pc?.config?.elasticColor || '#1a1a1a',
+        spiralColor: pc?.spiralColor || pc?.config?.spiralColor || '#1a1a1a',
+        paperPattern: pc?.paperPattern || pc?.config?.paperPattern || 'blank',
+        logos: [],
+        isNotebookOpen: false,
+        thermosBodyColor: pc?.thermosBodyColor || '#C0C0C0',
+        thermosCapColor: pc?.thermosCapColor || '#C0C0C0',
+        thermosCapVisible: true,
+        thermosLogos: pc?.thermosLogos || [],
+    };
+
+    return (
+        <div className="bg-white/[0.03] border border-white/10 rounded-[16px] overflow-hidden">
+            <div style={{ height: 200, pointerEvents: 'none' }}>
+                <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4.5], fov: 45 }} gl={{ antialias: true }}>
+                    <Environment preset="city" />
+                    <ambientLight intensity={0.6} />
+                    <directionalLight position={[10, 10, 5]} intensity={1.5} />
+                    <directionalLight position={[-10, 5, 2]} intensity={0.5} />
+                    <PresentationControls speed={1.5} global polar={[-0.1, Math.PI / 4]}>
+                        <Stage environment={null} intensity={0} contactShadow={false}>
+                            {productType === 'sketchbook' ? <Sketchbook config={config3D} /> : productType === 'thermos' ? <Thermos config={config3D} /> : <Notebook config={config3D} />}
+                        </Stage>
+                    </PresentationControls>
+                </Canvas>
+            </div>
+        </div>
+    );
+};
+
+const ClientDetailRow = ({ label, value, accent }) => (
+    <div className="flex flex-col gap-0.5 bg-white/[0.03] border border-white/5 rounded-[10px] px-3 py-2.5">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600">{label}</span>
+        <span className={`text-xs font-bold truncate ${accent ? 'text-white' : 'text-gray-300'}`}>{value}</span>
+    </div>
+);
+
+const ClientColorDot = ({ color }) => (
+    <div className="flex items-center gap-1.5">
+        <div className="w-3 h-3 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: color }} />
+        <span className="text-xs font-bold text-gray-300">{color}</span>
     </div>
 );
