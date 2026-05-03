@@ -1,0 +1,67 @@
+1) корневой компоуз
+
+
+services:
+  # ... твои текущие сервисы (db, backend, frontend, renderer) ...
+
+  pdf_generator:
+    build: ./microservices/pdf_generator
+    container_name: spruzhuk_pdf
+    restart: unless-stopped
+    networks:
+      - spruzhuk_net
+    # 5000 порт, наружу не открываем!
+
+2) /backend/app/api/v1/orders.py
+
+import httpx
+from fastapi.responses import Response
+
+
+@router.get("/{order_id}/tech-card", tags=["Production"])
+async def download_tech_card(
+        order_id: str,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "dealer", "owner"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    order = await crud_order.get_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    config = order.configuration or {}
+    product_config = config.get("productConfig", {})
+
+    render_url = None
+    if "server_render_url" in config:
+        render_url = f"http://backend:8000{config['server_render_url']}"
+
+    payload = {
+        "order_id": str(order.id)[:8].upper(),
+        "client_name": config.get("contact", {}).get("name", "Гость"),
+        "quantity": order.quantity,
+        "format": product_config.get("format", "A5"),
+        "binding_type": product_config.get("bindingType", "hard"),
+        "cover_color": product_config.get("coverColor", "#000"),
+        "paper_pattern": product_config.get("paperPattern", "blank"),
+        "render_url": render_url
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post("http://pdf_generator:5000/generate-tech-card", json=payload, timeout=30.0)
+            response.raise_for_status()
+
+            # Получаем байты PDF файла
+            pdf_bytes = response.content
+
+    except Exception as e:
+        print(f"PDF Microservice Error: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка генерации PDF")
+
+    headers = {
+        'Content-Disposition': f'attachment; filename="TechCard_{order.id[:8]}.pdf"'
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
