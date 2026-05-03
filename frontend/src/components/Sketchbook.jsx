@@ -7,9 +7,17 @@ import * as THREE from 'three'
 
 function LogoDecal({ texture, x, y, z, rotation = 0, scale = 0.6 }) {
     const map = useTexture(texture);
+    React.useEffect(() => {
+        if (map) {
+            map.wrapS = THREE.ClampToEdgeWrapping;
+            map.wrapT = THREE.ClampToEdgeWrapping;
+            map.anisotropy = 16;
+            map.needsUpdate = true;
+        }
+    }, [map]);
     return (
-        <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]} renderOrder={1}>
-            <meshPhysicalMaterial map={map} transparent depthTest depthWrite={false} polygonOffset polygonOffsetFactor={-10} roughness={0.8}/>
+        <Decal position={[x, y, z]} rotation={[0, 0, rotation]} scale={[scale, scale, 1]}>
+            <meshStandardMaterial map={map} transparent alphaTest={0.08} depthWrite={false} roughness={0.8} side={THREE.FrontSide}/>
         </Decal>
     );
 }
@@ -33,12 +41,13 @@ function createPatternTexture(type) {
     return texture;
 }
 
-export function Sketchbook(props) {
+export function Sketchbook({ config: configProp, ...props }) {
+    const store = useConfigurator();
     const {
         format, coverColor, spiralColor,
         logos,
         isNotebookOpen, paperPattern
-    } = useConfigurator()
+    } = configProp || store;
 
     const group = useRef()
     const frontCoverGroup = useRef()
@@ -95,7 +104,7 @@ export function Sketchbook(props) {
                     <meshStandardMaterial ref={coverMat} color={coverColor} roughness={0.8} />
                 </mesh>
 
-                <mesh position={[holeOffset/1.2, 0, zPaperCenter]} receiveShadow>
+                <mesh position={[holeOffset/1.2, 0, zPaperCenter + 0.001]} receiveShadow>
                     <boxGeometry args={[dims.w - holeOffset, dims.h - 0.05, paperThick]} />
                     <meshStandardMaterial color="#fcfcfc" roughness={0.9} />
                 </mesh>
