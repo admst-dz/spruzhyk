@@ -1,0 +1,16 @@
+1) корневой компоуз
+
+
+services:
+
+  block_builder:
+    build: ./microservices/block_builder
+    container_name: spruzhuk_block_builder
+    restart: unless-stopped
+    networks:
+      - spruzhuk_net
+    volumes:
+      - ./uploads:/app/uploads
+
+
+2) связь с json
