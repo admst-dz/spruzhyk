@@ -5,7 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { PresentationControls, Stage, Environment } from '@react-three/drei';
 import { Notebook } from './Notebook';
 import { Sketchbook } from './Sketchbook';
-import { Thermos } from './Thermos';
+import { Thermos } from './thermos/Thermos';
 
 export const Order = ({ onBack, onSuccess }) => {
     const {

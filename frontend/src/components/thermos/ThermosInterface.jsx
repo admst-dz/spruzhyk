@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useConfigurator, captureRender } from '../store';
+import { useRef } from 'react';
+import { useConfigurator, captureRender } from '../../store';
 
 const palette = [
     { name: 'Серебро',  bg: '#C0C0C0' },
@@ -16,8 +16,8 @@ const palette = [
 
 export const ThermosInterface = ({ onFinish }) => {
     const {
-        thermosBodyColor, thermosCapColor,
-        setColor,
+        thermosBodyColor, thermosCapColor, thermosCapVisible,
+        setColor, toggleThermosCap,
         thermosLogos, selectedThermosLogoId,
         addThermosLogo, selectThermosLogo, removeThermosLogo,
         resetThermosLogoTransform, setThermosLogoPosition,
@@ -33,8 +33,8 @@ export const ThermosInterface = ({ onFinish }) => {
         const newItem = {
             productName: 'Термос',
             design: `Корпус: ${thermosBodyColor}, Крышка: ${thermosCapColor}`,
-            priceTK: 50,
             priceBYN: 2000,
+            type: 'thermos',
             activeProduct: 'thermos',
             thermosBodyColor,
             thermosCapColor,
@@ -51,27 +51,38 @@ export const ThermosInterface = ({ onFinish }) => {
 
             <div className="flex items-end gap-4 px-8 py-6 shrink-0 z-10 bg-white/5 backdrop-blur-sm">
                 <span className="text-2xl md:text-3xl font-bold leading-none opacity-100">Термос</span>
-                <div className="ml-auto">
+                <div className="ml-auto md:hidden">
                     <ZoomControls zoomLevel={zoomLevel} setZoom={setZoom} />
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-6 pt-2 overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-40">
-
-                <div className="glass-panel rounded-[11px] overflow-hidden">
-                    <ColorGlassList
-                        label="Цвет корпуса"
-                        currentColor={thermosBodyColor}
-                        onSelect={(c) => setColor('thermosBody', c)}
-                    />
+            <div className="px-4 md:px-6 pt-3 pb-3 shrink-0">
+                <div className="glass-panel rounded-[11px] px-4 py-3">
+                    <span className="text-[11px] font-bold uppercase tracking-widest opacity-50 block mb-2">Цвет корпуса</span>
+                    <div className="flex flex-wrap gap-2">
+                        {palette.map(c => (
+                            <button
+                                key={c.name}
+                                title={c.name}
+                                onClick={() => setColor('thermosBody', c.bg)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all active:scale-90 ${thermosBodyColor === c.bg ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/60'}`}
+                                style={{ backgroundColor: c.bg }}
+                            />
+                        ))}
+                    </div>
                 </div>
+            </div>
 
-                <div className="glass-panel rounded-[11px] overflow-hidden">
-                    <ColorGlassList
-                        label="Цвет крышки"
-                        currentColor={thermosCapColor}
-                        onSelect={(c) => setColor('thermosCap', c)}
-                    />
+            <div className="flex-1 px-4 md:px-6 pt-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-40">
+
+                <div className="glass-panel rounded-[11px] p-5 flex items-center justify-between">
+                    <span className="text-xl font-bold tracking-wide">Крышка</span>
+                    <button
+                        onClick={toggleThermosCap}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${thermosCapVisible ? 'bg-white/80' : 'bg-white/20'}`}
+                    >
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full shadow transition-all duration-300 ${thermosCapVisible ? 'left-6 bg-[#1a1a1a]' : 'left-0.5 bg-white/40'}`} />
+                    </button>
                 </div>
 
                 <ThermosLogoPanel
@@ -110,7 +121,7 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
         const rect = e.currentTarget.getBoundingClientRect();
         const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 0.7);
+        setLogoPosition((nx * 2 - 1) * 0.35, -(ny * 2 - 1) * 1.8);
     };
 
     return (
@@ -141,6 +152,8 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
                             className="relative w-full aspect-square bg-white/8 rounded-[10px] border border-white/15 cursor-crosshair touch-none select-none overflow-hidden"
                             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updatePos(e); }}
                             onPointerMove={(e) => { if (e.buttons) updatePos(e); }}
+                            onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+                            onPointerCancel={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
                         >
                             <div className="absolute inset-0 flex items-center pointer-events-none">
                                 <div className="w-full h-px bg-white/15" />
@@ -151,8 +164,8 @@ const ThermosLogoPanel = ({ logos, selectedLogoId, addLogo, selectLogo, removeLo
                             <div
                                 className="absolute w-4 h-4 bg-white rounded-full shadow-lg border-2 border-white/80 pointer-events-none"
                                 style={{
-                                    left: `${(selected.position[0] / 0.35 + 1) / 2 * 100}%`,
-                                    top: `${(1 - (selected.position[1] / 0.7 + 1) / 2) * 100}%`,
+                                    left: `${(selected.position[0] / 0.5 + 1) / 2 * 100}%`,
+                                    top: `${(1 - (selected.position[1] / 1.7 + 1) / 2) * 100}%`,
                                     transform: 'translate(-50%, -50%)'
                                 }}
                             />
@@ -211,38 +224,4 @@ export const ZoomControls = ({ zoomLevel, setZoom }) => (
     </div>
 );
 
-const GlassDropdown = ({ label, currentValue, children, isColor = false, colorValue }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    return (
-        <div className="glass-panel rounded-[11px] transition-all overflow-hidden shadow-sm">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full p-5 flex items-center justify-between hover:bg-white/10 transition">
-                <span className="text-xl font-bold tracking-wide">{label}</span>
-                <div className="flex items-center gap-3">
-                    {isColor ? (
-                        <div className="w-6 h-6 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: colorValue }} />
-                    ) : (
-                        <span className="font-bold opacity-80 text-sm bg-white/10 px-2 py-1 rounded-[6px]">{currentValue}</span>
-                    )}
-                    <span className={`transform transition-transform duration-300 text-xl opacity-70 ${isOpen ? 'rotate-180' : ''}`}>⌄</span>
-                </div>
-            </button>
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-2 border-t border-white/10 bg-black/5">{children}</div>
-            </div>
-        </div>
-    );
-};
 
-const ColorGlassList = ({ label, currentColor, onSelect }) => (
-    <GlassDropdown label={label} isColor={true} colorValue={currentColor}>
-        <div className="flex flex-col gap-1">
-            {palette.map((c) => (
-                <button key={c.name} onClick={() => onSelect(c.bg)} className={`p-3 rounded-[6px] flex items-center gap-3 transition-colors ${currentColor === c.bg ? 'bg-white/30 shadow-sm border border-white/20' : 'hover:bg-white/10'}`}>
-                    <div className="w-8 h-8 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: c.bg }} />
-                    <span className="font-bold text-sm">{c.name}</span>
-                    {currentColor === c.bg && <span className="ml-auto text-xl">✓</span>}
-                </button>
-            ))}
-        </div>
-    </GlassDropdown>
-);
