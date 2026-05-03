@@ -35,7 +35,7 @@ function LogoDecal({ texture, position, rotation = 0, scale = 0.6, bodyRadius = 
     );
 }
 
-function ThermosMesh({ geo, matRef, color, metalness = 0.7, roughness = 0.25, logos = [], bodyRadius = 0.4, visible = true }) {
+function ThermosMesh({ geo, matRef, color, metalness = 0.0, roughness = 0.92, logos = [], bodyRadius = 0.4, visible = true }) {
     return (
         <mesh geometry={geo} visible={visible}>
             <meshStandardMaterial ref={matRef} color={color} metalness={metalness} roughness={roughness} />
@@ -167,8 +167,8 @@ export function Thermos({ config: configProp, ...props }) {
                     geo={capGeo}
                     matRef={capMatRef}
                     color={thermosCapColor}
-                    metalness={0.5}
-                    roughness={0.35}
+                    metalness={0.0}
+                    roughness={0.88}
                     visible={thermosCapVisible}
                 />
             )}
