@@ -104,7 +104,7 @@ const OrderStatus = ({ status }) => {
     );
 };
 
-export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToastShown }) => {
+export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToastShown, initialTab, onTabChange }) => {
     const {
         currentUser, logout, cartItem, clearCart,
         activeProduct, coverColor, elasticColor, hasElastic,
@@ -112,7 +112,12 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
         thermosBodyColor, thermosCapColor,
         renderSnapshot,
     } = useConfigurator();
-    const [activeTab, setActiveTab] = useState(cartItem ? 'cart' : 'orders');
+    const [activeTab, setActiveTab] = useState(initialTab ?? (cartItem ? 'cart' : 'orders'));
+
+    const changeTab = (tab) => {
+        setActiveTab(tab);
+        onTabChange?.(tab);
+    };
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
@@ -143,7 +148,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
 
     useEffect(() => {
         if (showSuccessToast) {
-            setActiveTab('orders');
+            changeTab('orders');
             setOrderSuccess(true);
             onSuccessToastShown?.();
         }
@@ -231,7 +236,7 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
             setOrders(prev => [newOrder, ...prev]);
             setOrderSuccess(true);
             clearCart();
-            setActiveTab('orders');
+            changeTab('orders');
         } catch (error) {
             console.error(error);
             setFormError('Ошибка сети. Попробуйте позже.');
@@ -267,11 +272,11 @@ export const ClientDashboard = ({ onBack, onEdit, showSuccessToast, onSuccessToa
 
                 {/* TABS */}
                 <div className="max-w-6xl mx-auto flex gap-8 mt-1">
-                    <TabBtn active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')}>Каталог</TabBtn>
-                    <TabBtn active={activeTab === 'cart'} onClick={() => setActiveTab('cart')}>
+                    <TabBtn active={activeTab === 'catalog'} onClick={() => changeTab('catalog')}>Каталог</TabBtn>
+                    <TabBtn active={activeTab === 'cart'} onClick={() => changeTab('cart')}>
                         Корзина {cartItem && <span className="ml-1 w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>}
                     </TabBtn>
-                    <TabBtn active={activeTab === 'orders'} onClick={() => setActiveTab('orders')}>Заказы</TabBtn>
+                    <TabBtn active={activeTab === 'orders'} onClick={() => changeTab('orders')}>Заказы</TabBtn>
                 </div>
             </header>
 

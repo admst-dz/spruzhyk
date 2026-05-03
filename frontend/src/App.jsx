@@ -13,6 +13,7 @@ import { Sketchbook } from './components/Sketchbook'
 import { SketchbookInterface } from './components/SketchbookInterface'
 import { ThermosInterface } from './components/thermos/ThermosInterface'
 import { CookieBanner } from './components/CookieBanner'
+import { AdminAuth } from './components/AdminAuth'
 
 const SCREEN_TO_PATH = {
     home: '/',
@@ -21,11 +22,32 @@ const SCREEN_TO_PATH = {
     dealer: '/dealer',
     client_dashboard: '/dashboard',
     sketchbook_configurator: '/sketchbook',
+    admin_auth: '/borodazaebal',
 };
 
 const PATH_TO_SCREEN = Object.fromEntries(
     Object.entries(SCREEN_TO_PATH).map(([k, v]) => [v, k])
 );
+
+const TAB_TO_PATH = {
+    catalog: '/dashboard/catalog',
+    cart: '/dashboard/cart',
+    orders: '/dashboard/orders',
+};
+
+const PATH_TO_TAB = {
+    '/dashboard/catalog': 'catalog',
+    '/dashboard/cart': 'cart',
+    '/dashboard/orders': 'orders',
+};
+
+function getInitialState() {
+    const path = window.location.pathname;
+    if (path.startsWith('/dashboard/')) {
+        return { screen: 'client_dashboard', tab: PATH_TO_TAB[path] ?? null };
+    }
+    return { screen: PATH_TO_SCREEN[path] ?? 'home', tab: null };
+}
 
 function App() {
 
@@ -59,19 +81,31 @@ function App() {
     }
 
 
-    const [screen, setScreen] = useState(
-        () => PATH_TO_SCREEN[window.location.pathname] ?? 'home'
-    );
+    const [screen, setScreen] = useState(() => getInitialState().screen);
+    const [dashboardTab, setDashboardTab] = useState(() => getInitialState().tab);
     const [showAuth, setShowAuth] = useState(false);
 
     const navigateTo = useCallback((newScreen) => {
         window.history.pushState({ screen: newScreen }, '', SCREEN_TO_PATH[newScreen] ?? '/');
         setScreen(newScreen);
+        setDashboardTab(null);
+    }, []);
+
+    const navigateToTab = useCallback((tab) => {
+        window.history.pushState({ screen: 'client_dashboard', tab }, '', TAB_TO_PATH[tab] ?? '/dashboard');
+        setDashboardTab(tab);
     }, []);
 
     useEffect(() => {
         const handlePopState = (e) => {
-            setScreen(e.state?.screen ?? PATH_TO_SCREEN[window.location.pathname] ?? 'home');
+            const path = window.location.pathname;
+            if (path.startsWith('/dashboard/')) {
+                setScreen('client_dashboard');
+                setDashboardTab(PATH_TO_TAB[path] ?? null);
+            } else {
+                setScreen(e.state?.screen ?? PATH_TO_SCREEN[path] ?? 'home');
+                setDashboardTab(null);
+            }
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
@@ -103,6 +137,7 @@ function App() {
 
     // --- ЛОГИКА: ПРОВЕРКА РОЛИ И РОУТИНГ ---
     useEffect(() => {
+        if (screen === 'admin_auth') return;
         if (userRole === 'dealer') {
             navigateTo('dealer');
         } else if (userRole === 'client' && screen !== 'configurator' && screen !== 'sketchbook_configurator') {
@@ -235,7 +270,15 @@ function App() {
                     onEdit={() => navigateTo('configurator')}
                     showSuccessToast={pendingSuccessToast}
                     onSuccessToastShown={() => setPendingSuccessToast(false)}
+                    initialTab={dashboardTab}
+                    onTabChange={navigateToTab}
                 />
+            )}
+
+
+            {/* --- ЭКРАН: АВТОРИЗАЦИЯ АДМИНКИ --- */}
+            {screen === 'admin_auth' && (
+                <AdminAuth onSuccess={() => {}} />
             )}
 
 
